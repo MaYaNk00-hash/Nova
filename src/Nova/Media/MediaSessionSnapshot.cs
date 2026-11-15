@@ -18,6 +18,17 @@ public sealed record MediaSessionSnapshot
 
     public bool IsPlaying => PlaybackStatus == MediaPlaybackStatus.Playing;
 
+    /// <summary>
+    /// Indicates whether the active session originated from YouTube Music (web tab, PWA, or desktop app).
+    /// </summary>
+    public bool IsYouTubeMusic =>
+        SourceDisplayName.Equals("YouTube Music", StringComparison.OrdinalIgnoreCase) ||
+        SourceAppId.Contains("YouTubeMusic", StringComparison.OrdinalIgnoreCase) ||
+        SourceAppId.Contains("music.youtube.com", StringComparison.OrdinalIgnoreCase) ||
+        TrackInfo.AlbumTitle.Contains("YouTube Music", StringComparison.OrdinalIgnoreCase) ||
+        TrackInfo.Title.Contains("YouTube Music", StringComparison.OrdinalIgnoreCase) ||
+        TrackInfo.Artist.Contains("YouTube Music", StringComparison.OrdinalIgnoreCase);
+
     public static MediaSessionSnapshot Empty { get; } = new()
     {
         SourceAppId = string.Empty,
@@ -39,6 +50,12 @@ public sealed record MediaSessionSnapshot
         var id = rawAppId.Trim();
 
         // Check common apps
+        if (id.Contains("YouTubeMusic", StringComparison.OrdinalIgnoreCase) || 
+            id.Contains("YouTube Music", StringComparison.OrdinalIgnoreCase) || 
+            id.Contains("music.youtube.com", StringComparison.OrdinalIgnoreCase))
+            return "YouTube Music";
+        if (id.Contains("YouTube", StringComparison.OrdinalIgnoreCase))
+            return "YouTube";
         if (id.Contains("Spotify", StringComparison.OrdinalIgnoreCase))
             return "Spotify";
         if (id.Contains("msedge", StringComparison.OrdinalIgnoreCase) || id.Contains("MicrosoftEdge", StringComparison.OrdinalIgnoreCase))

@@ -15,6 +15,9 @@ public static class MediaTests
     {
         Assert.Equal("Spotify", MediaSessionSnapshot.FormatSourceDisplayName("Spotify.exe"));
         Assert.Equal("Spotify", MediaSessionSnapshot.FormatSourceDisplayName("spotify"));
+        Assert.Equal("YouTube Music", MediaSessionSnapshot.FormatSourceDisplayName("YouTubeMusic.exe"));
+        Assert.Equal("YouTube Music", MediaSessionSnapshot.FormatSourceDisplayName("music.youtube.com"));
+        Assert.Equal("YouTube Music", MediaSessionSnapshot.FormatSourceDisplayName("Google.YouTubeMusic_8wekyb3d8bbwe!App"));
         Assert.Equal("Microsoft Edge", MediaSessionSnapshot.FormatSourceDisplayName("msedge.exe"));
         Assert.Equal("Google Chrome", MediaSessionSnapshot.FormatSourceDisplayName("chrome.exe"));
         Assert.Equal("Media Player", MediaSessionSnapshot.FormatSourceDisplayName("wmplayer.exe"));
@@ -355,5 +358,65 @@ public static class MediaTests
             }
             catch { }
         }
+    }
+
+    [Fact("Verify YouTube Music session identification, visualizer indicator, and UI rendering")]
+    public static void YouTubeMusic_SessionDetectionAndUIRendering()
+    {
+        // 1. Direct model test
+        var ytmSnapshot = new MediaSessionSnapshot
+        {
+            SourceAppId = "chrome.exe",
+            SourceDisplayName = "YouTube Music",
+            PlaybackStatus = MediaPlaybackStatus.Playing,
+            HasActiveSession = true,
+            TrackInfo = new MediaTrackInfo
+            {
+                Title = "Starboy",
+                Artist = "The Weeknd",
+                AlbumTitle = "Starboy • YouTube Music"
+            },
+            Capabilities = MediaCapabilities.All
+        };
+
+        Assert.True(ytmSnapshot.IsYouTubeMusic);
+        Assert.True(ytmSnapshot.IsPlaying);
+
+        // 2. STA IslandWindow UI test
+        Exception? threadEx = null;
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                using var engine = new EventEngine(startWorker: false);
+                using var mockMedia = new MockMediaService(engine);
+                var window = new Nova.UI.IslandWindow(mockMedia, engine);
+
+                window.UpdateMediaUI(ytmSnapshot);
+
+                // Compact view
+                Assert.Equal(System.Windows.Visibility.Visible, window.CompactMediaPanel.Visibility);
+                Assert.Equal(System.Windows.Visibility.Visible, window.CompactMediaVisualizer.Visibility);
+                Assert.Equal("Starboy • The Weeknd", window.CompactMediaText.Text);
+
+                // Expanded view
+                Assert.Equal("Starboy", window.MediaTitleText.Text);
+                Assert.Equal("The Weeknd • Starboy • YouTube Music", window.MediaArtistText.Text);
+                Assert.Equal("YOUTUBE MUSIC • PLAYING", window.MediaBadgeText.Text);
+                Assert.Equal(System.Windows.Visibility.Visible, window.MediaVisualizerText.Visibility);
+
+                window.Close();
+            }
+            catch (Exception ex)
+            {
+                threadEx = ex;
+            }
+        });
+
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        thread.Join(5000);
+
+        if (threadEx != null) throw threadEx;
     }
 }

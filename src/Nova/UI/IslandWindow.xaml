@@ -22,11 +22,18 @@
         Closed="Window_Closed">
 
     <Window.Resources>
-        <!-- Dark sleek button style -->
+        <!-- Dark sleek button style with specular gloss -->
         <Style x:Key="IslandActionButton" TargetType="Button">
-            <Setter Property="Background" Value="#1B202C"/>
+            <Setter Property="Background">
+                <Setter.Value>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                        <GradientStop Color="#1A2232" Offset="0.0"/>
+                        <GradientStop Color="#0F1420" Offset="1.0"/>
+                    </LinearGradientBrush>
+                </Setter.Value>
+            </Setter>
             <Setter Property="Foreground" Value="#E2E8F0"/>
-            <Setter Property="BorderBrush" Value="#2D3748"/>
+            <Setter Property="BorderBrush" Value="#2A384F"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Padding" Value="7,3"/>
             <Setter Property="FontSize" Value="10.5"/>
@@ -47,25 +54,39 @@
             </Setter>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#2A3346"/>
-                    <Setter Property="BorderBrush" Value="#38BDF8"/>
+                    <Setter Property="Background">
+                        <Setter.Value>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                <GradientStop Color="#25354F" Offset="0.0"/>
+                                <GradientStop Color="#152133" Offset="1.0"/>
+                            </LinearGradientBrush>
+                        </Setter.Value>
+                    </Setter>
+                    <Setter Property="BorderBrush" Value="#00F2FE"/>
                     <Setter Property="Foreground" Value="#FFFFFF"/>
                 </Trigger>
                 <Trigger Property="IsPressed" Value="True">
-                    <Setter Property="Background" Value="#151A24"/>
+                    <Setter Property="Background" Value="#0D131C"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
 
-        <!-- Media Control button style -->
+        <!-- Media Control button style with metallic glow -->
         <Style x:Key="MediaControlButton" TargetType="Button">
-            <Setter Property="Background" Value="#1E2638"/>
+            <Setter Property="Background">
+                <Setter.Value>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                        <GradientStop Color="#1B263B" Offset="0.0"/>
+                        <GradientStop Color="#0F1624" Offset="1.0"/>
+                    </LinearGradientBrush>
+                </Setter.Value>
+            </Setter>
             <Setter Property="Foreground" Value="#E2E8F0"/>
-            <Setter Property="BorderBrush" Value="#2D3B52"/>
+            <Setter Property="BorderBrush" Value="#2E405C"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Width" Value="28"/>
-            <Setter Property="Height" Value="26"/>
-            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Width" Value="30"/>
+            <Setter Property="Height" Value="28"/>
+            <Setter Property="FontSize" Value="11.5"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
                 <Setter.Value>
@@ -73,7 +94,7 @@
                         <Border Background="{TemplateBinding Background}" 
                                 BorderBrush="{TemplateBinding BorderBrush}" 
                                 BorderThickness="{TemplateBinding BorderThickness}" 
-                                CornerRadius="5">
+                                CornerRadius="14">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                     </ControlTemplate>
@@ -81,12 +102,19 @@
             </Setter>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#2A3750"/>
-                    <Setter Property="BorderBrush" Value="#38BDF8"/>
-                    <Setter Property="Foreground" Value="#38BDF8"/>
+                    <Setter Property="Background">
+                        <Setter.Value>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                <GradientStop Color="#283A5A" Offset="0.0"/>
+                                <GradientStop Color="#172336" Offset="1.0"/>
+                            </LinearGradientBrush>
+                        </Setter.Value>
+                    </Setter>
+                    <Setter Property="BorderBrush" Value="#00F2FE"/>
+                    <Setter Property="Foreground" Value="#00F2FE"/>
                 </Trigger>
                 <Trigger Property="IsEnabled" Value="False">
-                    <Setter Property="Opacity" Value="0.35"/>
+                    <Setter Property="Opacity" Value="0.32"/>
                     <Setter Property="Cursor" Value="Arrow"/>
                 </Trigger>
             </Style.Triggers>
@@ -112,22 +140,22 @@
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
                     <Setter Property="Background" Value="#232B3E"/>
-                    <Setter Property="Foreground" Value="#38BDF8"/>
+                    <Setter Property="Foreground" Value="#00F2FE"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
 
-        <!-- Sleek Dark Context Menu -->
-        <ContextMenu x:Key="IslandContextMenu" Background="#11151F" BorderBrush="#252C3B" BorderThickness="1">
+        <!-- Sleek Dark Context Menu with YouTube Music Connect -->
+        <ContextMenu x:Key="IslandContextMenu" Background="#0C101A" BorderBrush="#25354F" BorderThickness="1">
             <ContextMenu.Resources>
                 <Style TargetType="MenuItem">
                     <Setter Property="Foreground" Value="#E2E8F0"/>
-                    <Setter Property="Background" Value="#11151F"/>
+                    <Setter Property="Background" Value="#0C101A"/>
                     <Setter Property="FontSize" Value="12"/>
                     <Setter Property="Padding" Value="10,6"/>
                 </Style>
                 <Style TargetType="Separator">
-                    <Setter Property="Background" Value="#252C3B"/>
+                    <Setter Property="Background" Value="#1E2A3C"/>
                     <Setter Property="Margin" Value="4,2"/>
                 </Style>
             </ContextMenu.Resources>
@@ -135,6 +163,8 @@
             <MenuItem Header="Compact Pill" Click="MenuCompact_Click"/>
             <MenuItem Header="Reset Position (Top Center)" Click="MenuResetPosition_Click"/>
             <MenuItem x:Name="MenuAlwaysOnTop" Header="Always On Top" IsCheckable="True" IsChecked="True" Click="MenuAlwaysOnTop_Click"/>
+            <Separator/>
+            <MenuItem Header="🎵 Connect YouTube Music" Click="MenuOpenYouTubeMusic_Click" FontWeight="SemiBold"/>
             <Separator/>
             <MenuItem Header="Robot Companion">
                 <MenuItem Header="Test: ✨ Excited" Click="MenuTestExcited_Click"/>
@@ -155,22 +185,50 @@
     </Window.Resources>
 
     <Grid HorizontalAlignment="Center" VerticalAlignment="Top" Margin="10">
-        <!-- Main Island Pill Border -->
+        <!-- Main Island Pill Border with Obsidian Gloss & Cybernetic Specular Rim -->
         <Border x:Name="PillBorder"
                 Width="210"
                 Height="42"
                 CornerRadius="21"
-                Background="#0D1117"
-                BorderBrush="#252C3B"
-                BorderThickness="1"
+                BorderThickness="1.2"
                 ClipToBounds="True"
                 Cursor="Hand"
                 MouseLeftButtonDown="Pill_MouseLeftButtonDown">
+            <Border.BorderBrush>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                    <GradientStop Color="#00F2FE" Offset="0.0"/>
+                    <GradientStop Color="#38BDF8" Offset="0.25"/>
+                    <GradientStop Color="#1E293B" Offset="0.7"/>
+                    <GradientStop Color="#0F172A" Offset="1.0"/>
+                </LinearGradientBrush>
+            </Border.BorderBrush>
+            <Border.Background>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                    <GradientStop Color="#0D111A" Offset="0.0"/>
+                    <GradientStop Color="#070A10" Offset="0.5"/>
+                    <GradientStop Color="#04060A" Offset="1.0"/>
+                </LinearGradientBrush>
+            </Border.Background>
             <Border.Effect>
-                <DropShadowEffect BlurRadius="22" ShadowDepth="4" Direction="270" Color="#000000" Opacity="0.55"/>
+                <DropShadowEffect BlurRadius="26" ShadowDepth="4" Direction="270" Color="#000000" Opacity="0.75"/>
             </Border.Effect>
 
             <Grid>
+                <!-- Top Specular Rim Reflection Shine -->
+                <Border x:Name="PillGlossShine" 
+                        Height="19" 
+                        VerticalAlignment="Top" 
+                        CornerRadius="21,21,0,0" 
+                        IsHitTestVisible="False">
+                    <Border.Background>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                            <GradientStop Color="#2EFFFFFF" Offset="0.0"/>
+                            <GradientStop Color="#08FFFFFF" Offset="0.45"/>
+                            <GradientStop Color="#00FFFFFF" Offset="1.0"/>
+                        </LinearGradientBrush>
+                    </Border.Background>
+                </Border>
+
                 <!-- COMPACT STATE VIEW -->
                 <Grid x:Name="CompactPanel" Height="42" VerticalAlignment="Center" Margin="10,0">
                     <Grid.ColumnDefinitions>
@@ -180,7 +238,7 @@
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
 
-                    <!-- Robot Mascot Companion (Compact 26px) -->
+                    <!-- Robot Mascot Companion (Compact 26px with glowing cyan LED eyes) -->
                     <robot:RobotCompanion x:Name="CompactRobot" 
                                           CompanionSize="26" 
                                           Grid.Column="0" 
@@ -194,7 +252,9 @@
                                    FontSize="12" 
                                    Foreground="#F8FAFC" 
                                    VerticalAlignment="Center"/>
-                        <Border Background="#1E293B" 
+                        <Border Background="#0C1424" 
+                                BorderBrush="#00F2FE" 
+                                BorderThickness="0.8" 
                                 CornerRadius="4" 
                                 Padding="5,1" 
                                 Margin="6,0,0,0" 
@@ -202,17 +262,27 @@
                             <TextBlock Text="READY" 
                                        FontSize="8" 
                                        FontWeight="Bold" 
-                                       Foreground="#38BDF8"/>
+                                       Foreground="#00F2FE"/>
                         </Border>
                     </StackPanel>
 
                     <!-- Compact Media Bar (visible when media is active) -->
                     <Grid x:Name="CompactMediaPanel" Grid.Column="1" VerticalAlignment="Center" Visibility="Collapsed" Margin="0,0,6,0">
                         <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
+                        <TextBlock x:Name="CompactMediaVisualizer" 
+                                   Text="ılıll" 
+                                   FontSize="10" 
+                                   FontWeight="Bold" 
+                                   Foreground="#00F2FE" 
+                                   VerticalAlignment="Center" 
+                                   Margin="0,0,5,0" 
+                                   Visibility="Collapsed"/>
                         <TextBlock x:Name="CompactMediaText" 
+                                   Grid.Column="1" 
                                    Text="Track • Artist" 
                                    FontSize="10.5" 
                                    FontWeight="Medium" 
@@ -220,7 +290,7 @@
                                    TextTrimming="CharacterEllipsis" 
                                    VerticalAlignment="Center"/>
                         <Button x:Name="CompactPlayPauseBtn" 
-                                Grid.Column="1" 
+                                Grid.Column="2" 
                                 Style="{StaticResource IconButton}" 
                                 Content="▶" 
                                 Width="22" 
@@ -297,11 +367,15 @@
                         </Grid.ColumnDefinitions>
 
                         <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                            <Ellipse Width="8" Height="8" Fill="#38BDF8" Margin="0,0,8,0"/>
+                            <Ellipse Width="8" Height="8" Fill="#00F2FE" Margin="0,0,8,0">
+                                <Ellipse.Effect>
+                                    <DropShadowEffect Color="#00F2FE" BlurRadius="6" ShadowDepth="0" Opacity="0.9"/>
+                                </Ellipse.Effect>
+                            </Ellipse>
                             <TextBlock Text="NOVA COMPANION" 
                                        FontWeight="Bold" 
                                        FontSize="12" 
-                                       Foreground="#38BDF8" 
+                                       Foreground="#00F2FE" 
                                        VerticalAlignment="Center"/>
                             <TextBlock Text="v0.1.0" 
                                        FontSize="10" 
@@ -379,11 +453,21 @@
 
                         <!-- Card 1: Showcase Robot & Reaction Controls -->
                         <Border Grid.Column="0" 
-                                Background="#141822" 
-                                BorderBrush="#252D3D" 
+                                CornerRadius="10" 
                                 BorderThickness="1" 
-                                CornerRadius="8" 
                                 Padding="8">
+                            <Border.Background>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                    <GradientStop Color="#0D121D" Offset="0.0"/>
+                                    <GradientStop Color="#060910" Offset="1.0"/>
+                                </LinearGradientBrush>
+                            </Border.Background>
+                            <Border.BorderBrush>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                    <GradientStop Color="#2A3950" Offset="0.0"/>
+                                    <GradientStop Color="#141E2D" Offset="1.0"/>
+                                </LinearGradientBrush>
+                            </Border.BorderBrush>
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto"/>
@@ -403,7 +487,7 @@
                                                Text="COMPANION • ACTIVE" 
                                                FontSize="8.5" 
                                                FontWeight="Bold" 
-                                               Foreground="#38BDF8" 
+                                               Foreground="#00F2FE" 
                                                TextTrimming="CharacterEllipsis" 
                                                Margin="0,0,0,1"/>
                                     <TextBlock x:Name="EventStatusText" 
@@ -431,13 +515,23 @@
                             </Grid>
                         </Border>
 
-                        <!-- Card 2: Now Playing & Media Controls -->
+                        <!-- Card 2: Now Playing & Media Controls (with YouTube Music integration) -->
                         <Border Grid.Column="2" 
-                                Background="#141822" 
-                                BorderBrush="#252D3D" 
+                                CornerRadius="10" 
                                 BorderThickness="1" 
-                                CornerRadius="8" 
                                 Padding="10">
+                            <Border.Background>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                    <GradientStop Color="#0D121D" Offset="0.0"/>
+                                    <GradientStop Color="#060910" Offset="1.0"/>
+                                </LinearGradientBrush>
+                            </Border.Background>
+                            <Border.BorderBrush>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                    <GradientStop Color="#2A3950" Offset="0.0"/>
+                                    <GradientStop Color="#141E2D" Offset="1.0"/>
+                                </LinearGradientBrush>
+                            </Border.BorderBrush>
                             <Grid>
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto"/>
@@ -445,25 +539,36 @@
                                     <RowDefinition Height="Auto"/>
                                 </Grid.RowDefinitions>
 
-                                <!-- Header: Badge & Source -->
-                                <Grid Grid.Row="0" Margin="0,0,0,5">
+                                <!-- Header: Badge, Visualizer & YouTube Music Action -->
+                                <Grid Grid.Row="0" Margin="0,0,0,6">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock x:Name="MediaBadgeText" 
-                                               Text="MEDIA • STANDBY" 
-                                               FontSize="8.5" 
-                                               FontWeight="Bold" 
-                                               Foreground="#10B981" 
-                                               VerticalAlignment="Center"/>
-                                    <TextBlock x:Name="MediaSourceText" 
-                                               Grid.Column="1" 
-                                               Text="" 
-                                               FontSize="8" 
-                                               FontWeight="Medium" 
-                                               Foreground="#64748B" 
-                                               VerticalAlignment="Center"/>
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <TextBlock x:Name="MediaBadgeText" 
+                                                   Text="MEDIA • STANDBY" 
+                                                   FontSize="8.5" 
+                                                   FontWeight="Bold" 
+                                                   Foreground="#10B981" 
+                                                   VerticalAlignment="Center"/>
+                                        <TextBlock x:Name="MediaVisualizerText" 
+                                                   Text="ılıll" 
+                                                   FontSize="10.5" 
+                                                   FontWeight="Bold" 
+                                                   Foreground="#00F2FE" 
+                                                   Margin="6,0,0,0" 
+                                                   VerticalAlignment="Center" 
+                                                   Visibility="Collapsed"/>
+                                    </StackPanel>
+                                    <Button x:Name="BtnOpenYouTubeMusic" 
+                                            Grid.Column="1" 
+                                            Style="{StaticResource IslandActionButton}" 
+                                            Content="🎵 YouTube Music" 
+                                            ToolTip="Connect or Open https://music.youtube.com/ in browser" 
+                                            Click="OpenYouTubeMusic_Click" 
+                                            Padding="6,1.5" 
+                                            FontSize="8"/>
                                 </Grid>
 
                                 <!-- Track Metadata & Artwork -->
@@ -473,13 +578,13 @@
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
 
-                                    <!-- Artwork or Icon Placeholder -->
+                                    <!-- Artwork or Icon Placeholder with glossy glass frame -->
                                     <Border Grid.Column="0" 
-                                            Width="34" 
-                                            Height="34" 
-                                            CornerRadius="5" 
-                                            Background="#1E2638" 
-                                            BorderBrush="#2F3B52" 
+                                            Width="36" 
+                                            Height="36" 
+                                            CornerRadius="6" 
+                                            Background="#151E2E" 
+                                            BorderBrush="#2D3F5C" 
                                             BorderThickness="1" 
                                             ClipToBounds="True" 
                                             HorizontalAlignment="Left" 
@@ -488,7 +593,7 @@
                                             <TextBlock x:Name="MediaPlaceholderIcon" 
                                                        Text="♫" 
                                                        FontSize="16" 
-                                                       Foreground="#38BDF8" 
+                                                       Foreground="#00F2FE" 
                                                        HorizontalAlignment="Center" 
                                                        VerticalAlignment="Center"/>
                                             <Image x:Name="MediaArtworkImage" 
@@ -514,7 +619,7 @@
                                     </StackPanel>
                                 </Grid>
 
-                                <!-- Playback Controls -->
+                                <!-- Playback Controls with Shiny Metallic Transport Buttons -->
                                 <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center">
                                     <Button x:Name="MediaPrevBtn" 
                                             Style="{StaticResource MediaControlButton}" 
@@ -522,14 +627,14 @@
                                             ToolTip="Previous Track" 
                                             IsEnabled="False" 
                                             Click="MediaPrev_Click" 
-                                            Margin="0,0,6,0"/>
+                                            Margin="0,0,8,0"/>
                                     <Button x:Name="MediaPlayPauseBtn" 
                                             Style="{StaticResource MediaControlButton}" 
                                             Content="▶" 
                                             ToolTip="Play / Pause" 
                                             IsEnabled="False" 
                                             Click="MediaPlayPause_Click" 
-                                            Margin="0,0,6,0"/>
+                                            Margin="0,0,8,0"/>
                                     <Button x:Name="MediaNextBtn" 
                                             Style="{StaticResource MediaControlButton}" 
                                             Content="⏭" 

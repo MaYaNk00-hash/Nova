@@ -323,6 +323,19 @@ public sealed class WindowsMediaService : IMediaService
                 AppLogger.Warning($"Error reading media properties: {ex.Message}");
             }
 
+            // Identify YouTube Music when playing from a browser tab or web app wrapper
+            if (displayName == "Microsoft Edge" || displayName == "Google Chrome" || displayName == "Brave" || displayName == "Mozilla Firefox" || displayName == "Unknown Player")
+            {
+                if (trackInfo.AlbumTitle.Contains("YouTube Music", StringComparison.OrdinalIgnoreCase) ||
+                    trackInfo.Artist.Contains("YouTube Music", StringComparison.OrdinalIgnoreCase) ||
+                    trackInfo.Title.Contains("YouTube Music", StringComparison.OrdinalIgnoreCase) ||
+                    appId.Contains("music.youtube.com", StringComparison.OrdinalIgnoreCase) ||
+                    appId.Contains("YouTubeMusic", StringComparison.OrdinalIgnoreCase))
+                {
+                    displayName = "YouTube Music";
+                }
+            }
+
             var previousSnapshot = CurrentSnapshot;
             var newSnapshot = new MediaSessionSnapshot
             {

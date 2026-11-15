@@ -21,6 +21,7 @@ public partial class IslandWindow : Window
     private readonly IMediaService _mediaService;
     private readonly INotificationService _notificationService;
     private readonly List<IDisposable> _subscriptions = new();
+    private MediaSessionSnapshot? _lastMediaSnapshot;
     private bool _isManuallyPositioned = false;
     private bool _isTransitioning = false;
 
@@ -84,7 +85,10 @@ public partial class IslandWindow : Window
         try
         {
             await _mediaService.InitializeAsync();
-            UpdateMediaUI(_mediaService.CurrentSnapshot);
+            if (_mediaService.CurrentSnapshot.HasActiveSession)
+            {
+                UpdateMediaUI(_mediaService.CurrentSnapshot);
+            }
         }
         catch (Exception ex)
         {
@@ -278,6 +282,12 @@ public partial class IslandWindow : Window
         PillBorder.BeginAnimation(WidthProperty, animWidth);
         PillBorder.BeginAnimation(HeightProperty, animHeight);
         PillBorder.BeginAnimation(Border.CornerRadiusProperty, animCorner);
+
+        if (PillGlossShine != null)
+        {
+            var animShineCorner = new CornerRadiusAnimation(PillGlossShine.CornerRadius, new CornerRadius(targetCornerRadius, targetCornerRadius, 0, 0), duration) { EasingFunction = ease };
+            PillGlossShine.BeginAnimation(Border.CornerRadiusProperty, animShineCorner);
+        }
 
         // Keep centered horizontally if not manually dragged
         if (!_isManuallyPositioned)
@@ -485,6 +495,7 @@ public partial class IslandWindow : Window
 
     public void UpdateMediaUI(MediaSessionSnapshot snapshot)
     {
+        _lastMediaSnapshot = snapshot;
         if (snapshot.HasActiveSession)
         {
             // Compact View
@@ -495,6 +506,14 @@ public partial class IslandWindow : Window
                 CompactMediaText.Text = snapshot.TrackInfo.DisplayString;
                 CompactPlayPauseBtn.Content = snapshot.IsPlaying ? "⏸" : "▶";
                 CompactPlayPauseBtn.IsEnabled = snapshot.Capabilities.CanTogglePlayPause || snapshot.Capabilities.CanPlay || snapshot.Capabilities.CanPause;
+
+                if (CompactMediaVisualizer != null)
+                {
+                    CompactMediaVisualizer.Visibility = snapshot.IsPlaying ? Visibility.Visible : Visibility.Collapsed;
+                    CompactMediaVisualizer.Foreground = snapshot.IsYouTubeMusic
+                        ? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 68, 68))
+                        : new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0, 242, 254));
+                }
             }
 
             // Expanded View
@@ -519,15 +538,28 @@ public partial class IslandWindow : Window
 
             if (MediaBadgeText != null)
             {
-                MediaBadgeText.Text = $"{snapshot.SourceDisplayName.ToUpperInvariant()} • {snapshot.PlaybackStatus.ToString().ToUpperInvariant()}";
-                MediaBadgeText.Foreground = snapshot.IsPlaying 
-                    ? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(56, 189, 248)) 
-                    : new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(148, 163, 184));
+                if (snapshot.IsYouTubeMusic)
+                {
+                    MediaBadgeText.Text = $"YOUTUBE MUSIC • {snapshot.PlaybackStatus.ToString().ToUpperInvariant()}";
+                    MediaBadgeText.Foreground = snapshot.IsPlaying 
+                        ? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 68, 68)) 
+                        : new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(148, 163, 184));
+                }
+                else
+                {
+                    MediaBadgeText.Text = $"{snapshot.SourceDisplayName.ToUpperInvariant()} • {snapshot.PlaybackStatus.ToString().ToUpperInvariant()}";
+                    MediaBadgeText.Foreground = snapshot.IsPlaying 
+                        ? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0, 242, 254)) 
+                        : new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(148, 163, 184));
+                }
             }
 
-            if (MediaSourceText != null)
+            if (MediaVisualizerText != null)
             {
-                MediaSourceText.Text = snapshot.SourceDisplayName;
+                MediaVisualizerText.Visibility = snapshot.IsPlaying ? Visibility.Visible : Visibility.Collapsed;
+                MediaVisualizerText.Foreground = snapshot.IsYouTubeMusic
+                    ? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 68, 68))
+                    : new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0, 242, 254));
             }
 
             // Artwork
@@ -581,6 +613,11 @@ public partial class IslandWindow : Window
                 CompactDefaultPanel.Visibility = Visibility.Visible;
             }
 
+            if (CompactMediaVisualizer != null)
+                CompactMediaVisualizer.Visibility = Visibility.Collapsed;
+            if (MediaVisualizerText != null)
+                MediaVisualizerText.Visibility = Visibility.Collapsed;
+
             if (MediaTitleText != null)
                 MediaTitleText.Text = "No Media Playing";
             if (MediaArtistText != null)
@@ -590,8 +627,6 @@ public partial class IslandWindow : Window
                 MediaBadgeText.Text = "MEDIA • STANDBY";
                 MediaBadgeText.Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(100, 116, 139));
             }
-            if (MediaSourceText != null)
-                MediaSourceText.Text = "";
 
             if (MediaArtworkImage != null && MediaPlaceholderIcon != null)
             {
@@ -609,6 +644,34 @@ public partial class IslandWindow : Window
                 MediaPrevBtn.IsEnabled = false;
             if (MediaNextBtn != null)
                 MediaNextBtn.IsEnabled = false;
+        }
+    }
+
+    private void OpenYouTubeMusic_Click(object sender, RoutedEventArgs e)
+    {
+        OpenYouTubeMusicUrl();
+    }
+
+    private void MenuOpenYouTubeMusic_Click(object sender, RoutedEventArgs e)
+    {
+        OpenYouTubeMusicUrl();
+    }
+
+    private void OpenYouTubeMusicUrl()
+    {
+        try
+        {
+            AppLogger.Info("Opening YouTube Music (https://music.youtube.com/) in default browser...");
+            var psi = new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = "https://music.youtube.com/",
+                UseShellExecute = true
+            };
+            System.Diagnostics.Process.Start(psi);
+        }
+        catch (Exception ex)
+        {
+            AppLogger.Warning($"Could not launch YouTube Music: {ex.Message}");
         }
     }
 
@@ -697,7 +760,8 @@ public partial class IslandWindow : Window
             {
                 CompactNotificationPanel.Visibility = Visibility.Collapsed;
 
-                if (_mediaService.CurrentSnapshot.HasActiveSession)
+                var activeSnapshot = (_lastMediaSnapshot?.HasActiveSession == true) ? _lastMediaSnapshot : _mediaService.CurrentSnapshot;
+                if (activeSnapshot.HasActiveSession)
                 {
                     CompactMediaPanel.Visibility = Visibility.Visible;
                     CompactDefaultPanel.Visibility = Visibility.Collapsed;

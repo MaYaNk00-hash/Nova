@@ -122,3 +122,4 @@ In accordance with strict engineering discipline, NOVA explicitly differentiates
   - `notification.cleared`: Published when queue is cleared.
 - **Automated Test Suite**:
   - 51 passing tests covering all states, priority ordering, expiry pruning, deduplication, real WinRT security boundaries, and local schema processing.
+

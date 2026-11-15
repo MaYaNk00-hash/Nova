@@ -70,6 +70,24 @@ dotnet run --project src/Nova/Nova.csproj -- --smoke-test
 
 ---
 
+## YouTube Music Background Control & Shiny Dark UI
+
+- **YouTube Music Integration**:
+  - Connects to `https://music.youtube.com/` (or YouTube Music PWA / Edge / Chrome / Brave tabs) seamlessly via Windows Global System Media Transport Controls (`Windows.Media.Control`).
+  - Detects active audio streams, displaying track title, artist name, and album artwork without requiring browser window focus.
+  - Full background playback controls: Play/Pause (`⏯`), Next (`⏭`), and Previous (`⏮`) operate directly in the background.
+  - Dedicated `🎵 YouTube Music` action button and tray/context menu item `🎵 Connect YouTube Music` for instant navigation.
+  - Dynamic audio visualizer wave graphics (`ılıll`) with YouTube Music red glow.
+
+- **Shiny Dark UI Aesthetic**:
+  - Top specular glass rim reflection sheen on the floating island pill.
+  - Obsidian glass gradient background (`#0D111A` to `#04060A`).
+  - Cybernetic neon cyan rim border gradient (`#00F2FE` to `#0F172A`).
+  - Upgraded companion mascot: metallic chrome shell with specular highlights, obsidian visor, and glowing cyan LED eyes with drop-shadow aura.
+  - Frosted glass cards with dual-tone gradient borders and metallic transport buttons.
+
+---
+
 ## Logs and Storage
 
 Application logs are stored locally at:

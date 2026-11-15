@@ -19,44 +19,91 @@
                         </TransformGroup>
                     </Grid.RenderTransform>
 
-                    <!-- Left Ear / Antenna Node -->
-                    <Path Data="M 10 24 C 6 24, 4 28, 4 33 C 4 38, 6 42, 10 42 Z" Fill="#CBD5E1"/>
-                    <Ellipse Canvas.Left="5" Canvas.Top="28" Width="4" Height="4" Fill="#38BDF8" HorizontalAlignment="Left" Margin="4,30,0,0" VerticalAlignment="Top"/>
+                    <!-- Left Ear / Cyber Node -->
+                    <Path Data="M 10 24 C 6 24, 4 28, 4 33 C 4 38, 6 42, 10 42 Z">
+                        <Path.Fill>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                <GradientStop Color="#FFFFFF" Offset="0.0"/>
+                                <GradientStop Color="#94A3B8" Offset="1.0"/>
+                            </LinearGradientBrush>
+                        </Path.Fill>
+                    </Path>
+                    <Ellipse Canvas.Left="5" Canvas.Top="28" Width="4" Height="4" Fill="#00F2FE" HorizontalAlignment="Left" Margin="4,30,0,0" VerticalAlignment="Top">
+                        <Ellipse.Effect>
+                            <DropShadowEffect Color="#00F2FE" BlurRadius="5" ShadowDepth="0" Opacity="0.9"/>
+                        </Ellipse.Effect>
+                    </Ellipse>
 
-                    <!-- Right Ear / Antenna Node -->
-                    <Path Data="M 54 24 C 58 24, 60 28, 60 33 C 60 38, 58 42, 54 42 Z" Fill="#CBD5E1"/>
-                    <Ellipse Width="4" Height="4" Fill="#38BDF8" HorizontalAlignment="Right" Margin="0,30,4,0" VerticalAlignment="Top"/>
+                    <!-- Right Ear / Cyber Node -->
+                    <Path Data="M 54 24 C 58 24, 60 28, 60 33 C 60 38, 58 42, 54 42 Z">
+                        <Path.Fill>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                <GradientStop Color="#FFFFFF" Offset="0.0"/>
+                                <GradientStop Color="#94A3B8" Offset="1.0"/>
+                            </LinearGradientBrush>
+                        </Path.Fill>
+                    </Path>
+                    <Ellipse Width="4" Height="4" Fill="#00F2FE" HorizontalAlignment="Right" Margin="0,30,4,0" VerticalAlignment="Top">
+                        <Ellipse.Effect>
+                            <DropShadowEffect Color="#00F2FE" BlurRadius="5" ShadowDepth="0" Opacity="0.9"/>
+                        </Ellipse.Effect>
+                    </Ellipse>
 
                     <!-- Antenna Top LED Pin -->
-                    <Rectangle Width="2" Height="6" Fill="#94A3B8" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,4,0,0"/>
-                    <Ellipse x:Name="AntennaLed" Width="5" Height="5" Fill="#38BDF8" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,2,0,0"/>
+                    <Rectangle Width="2" Height="6" Fill="#CBD5E1" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,4,0,0"/>
+                    <Ellipse x:Name="AntennaLed" Width="5" Height="5" Fill="#00F2FE" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,2,0,0">
+                        <Ellipse.Effect>
+                            <DropShadowEffect Color="#00F2FE" BlurRadius="6" ShadowDepth="0" Opacity="0.95"/>
+                        </Ellipse.Effect>
+                    </Ellipse>
 
-                    <!-- White/Silver Metallic Head Shell -->
+                    <!-- Shiny Metallic Head Shell with Specular Gloss -->
                     <Border x:Name="HeadChassis" 
                             Width="46" Height="44" 
                             CornerRadius="16" 
-                            BorderBrush="#CBD5E1" 
                             BorderThickness="1.5" 
                             HorizontalAlignment="Center" 
                             VerticalAlignment="Center" 
                             Margin="0,6,0,0">
-                        <Border.Background>
-                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                        <Border.BorderBrush>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
                                 <GradientStop Color="#FFFFFF" Offset="0.0"/>
-                                <GradientStop Color="#F1F5F9" Offset="0.6"/>
-                                <GradientStop Color="#E2E8F0" Offset="1.0"/>
+                                <GradientStop Color="#38BDF8" Offset="0.35"/>
+                                <GradientStop Color="#64748B" Offset="1.0"/>
+                            </LinearGradientBrush>
+                        </Border.BorderBrush>
+                        <Border.Background>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="0.8,1">
+                                <GradientStop Color="#FFFFFF" Offset="0.0"/>
+                                <GradientStop Color="#F8FAFC" Offset="0.2"/>
+                                <GradientStop Color="#E2E8F0" Offset="0.55"/>
+                                <GradientStop Color="#CBD5E1" Offset="1.0"/>
                             </LinearGradientBrush>
                         </Border.Background>
+                        <Border.Effect>
+                            <DropShadowEffect BlurRadius="8" ShadowDepth="2" Direction="270" Color="#000000" Opacity="0.3"/>
+                        </Border.Effect>
 
                         <!-- Visor Faceplate (Obsidian Gloss) -->
                         <Border x:Name="VisorPlate" 
                                 Width="36" Height="26" 
                                 CornerRadius="10" 
-                                Background="#0A0D14" 
-                                BorderBrush="#1E293B" 
                                 BorderThickness="1" 
                                 HorizontalAlignment="Center" 
                                 VerticalAlignment="Center">
+                            <Border.BorderBrush>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                    <GradientStop Color="#38BDF8" Offset="0.0"/>
+                                    <GradientStop Color="#0F172A" Offset="1.0"/>
+                                </LinearGradientBrush>
+                            </Border.BorderBrush>
+                            <Border.Background>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                    <GradientStop Color="#141B2B" Offset="0.0"/>
+                                    <GradientStop Color="#060910" Offset="0.6"/>
+                                    <GradientStop Color="#030508" Offset="1.0"/>
+                                </LinearGradientBrush>
+                            </Border.Background>
 
                             <!-- Eye Gaze Tracking Container -->
                             <Grid x:Name="EyesGazeContainer" HorizontalAlignment="Center" VerticalAlignment="Center">
@@ -74,20 +121,28 @@
                                             </TransformGroup>
                                         </Grid.RenderTransform>
 
-                                        <!-- Normal Open Eye -->
+                                        <!-- Normal Open Eye (Neon Glow) -->
                                         <Border x:Name="LeftEyeNormal" 
                                                 Width="7" Height="10" 
                                                 CornerRadius="3.5" 
-                                                Background="#38BDF8"/>
+                                                Background="#00F2FE">
+                                            <Border.Effect>
+                                                <DropShadowEffect Color="#00F2FE" BlurRadius="6" ShadowDepth="0" Opacity="0.95"/>
+                                            </Border.Effect>
+                                        </Border>
 
                                         <!-- Happy Arc Eye (Chevrons) -->
                                         <Path x:Name="LeftEyeHappy" 
                                               Data="M 1 8 Q 5 2 9 8" 
-                                              Stroke="#38BDF8" 
-                                              StrokeThickness="2.2" 
+                                              Stroke="#00F2FE" 
+                                              StrokeThickness="2.4" 
                                               StrokeStartLineCap="Round" 
                                               StrokeEndLineCap="Round" 
-                                              Visibility="Collapsed"/>
+                                              Visibility="Collapsed">
+                                            <Path.Effect>
+                                                <DropShadowEffect Color="#00F2FE" BlurRadius="6" ShadowDepth="0" Opacity="0.95"/>
+                                            </Path.Effect>
+                                        </Path>
 
                                         <!-- Sleeping Flat Eye -->
                                         <Rectangle x:Name="LeftEyeSleeping" 
@@ -106,20 +161,28 @@
                                             </TransformGroup>
                                         </Grid.RenderTransform>
 
-                                        <!-- Normal Open Eye -->
+                                        <!-- Normal Open Eye (Neon Glow) -->
                                         <Border x:Name="RightEyeNormal" 
                                                 Width="7" Height="10" 
                                                 CornerRadius="3.5" 
-                                                Background="#38BDF8"/>
+                                                Background="#00F2FE">
+                                            <Border.Effect>
+                                                <DropShadowEffect Color="#00F2FE" BlurRadius="6" ShadowDepth="0" Opacity="0.95"/>
+                                            </Border.Effect>
+                                        </Border>
 
                                         <!-- Happy Arc Eye (Chevrons) -->
                                         <Path x:Name="RightEyeHappy" 
                                               Data="M 1 8 Q 5 2 9 8" 
-                                              Stroke="#38BDF8" 
-                                              StrokeThickness="2.2" 
+                                              Stroke="#00F2FE" 
+                                              StrokeThickness="2.4" 
                                               StrokeStartLineCap="Round" 
                                               StrokeEndLineCap="Round" 
-                                              Visibility="Collapsed"/>
+                                              Visibility="Collapsed">
+                                            <Path.Effect>
+                                                <DropShadowEffect Color="#00F2FE" BlurRadius="6" ShadowDepth="0" Opacity="0.95"/>
+                                            </Path.Effect>
+                                        </Path>
 
                                         <!-- Sleeping Flat Eye -->
                                         <Rectangle x:Name="RightEyeSleeping" 

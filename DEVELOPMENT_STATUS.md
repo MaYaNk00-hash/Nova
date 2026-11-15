@@ -174,6 +174,30 @@
 
 ---
 
+## YouTube Music Background Integration & Shiny Dark UI Enhancements
+
+### 1. YouTube Music Background Media Integration
+- **Target URL**: `https://music.youtube.com/` (Google Chrome, Microsoft Edge, Brave, and YouTube Music PWA).
+- **Background Control Architecture**:
+  - Leverages Windows Global System Media Transport Controls (`Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager`).
+  - Automatically identifies YouTube Music sessions from Chromium-based browser sessions using AUMID, display name, and track metadata (`music.youtube.com`, `YouTubeMusic`).
+  - Displays track title, artist name, and album artwork when available.
+  - Background playback control: Play, Pause, Next Track, and Previous Track commands dispatch to GSMTC sessions directly, controlling background playback without needing window focus.
+  - Direct connection affordance: `🎵 YouTube Music` action button on the Now Playing card and `🎵 Connect YouTube Music` on the island context menu launch `https://music.youtube.com/` directly in the user's default browser.
+  - Live audio visualizer indicator (`ılıll`) with YouTube Music red glow.
+
+### 2. Shiny Dark UI Aesthetic
+- **Specular Top Rim Sheen**: Added a curved specular glass highlight reflection (`LinearGradientBrush` with white gloss falloff) across the top border of the island pill.
+- **Obsidian Dark Glass Foundation**: Deep dark gradient background (`#0D111A` to `#04060A`) providing rich contrast and depth.
+- **Cybernetic Neon Cyan Rim**: Dual-stop gradient border (`#00F2FE` cyan to `#0F172A` deep slate) with outer glow drop-shadow.
+- **Upgraded Companion Mascot**:
+  - Cybernetic metallic chrome/silver gradient shell with specular highlights.
+  - Glowing neon cyan LED eyes (`#00F2FE`) enhanced with a soft aura `DropShadowEffect`.
+  - Glowing antenna beacon node.
+- **Shiny Metallic Controls**: Brushed metallic gradients on transport buttons (`⏮`, `⏯`, `⏭`) and pill quick-action buttons with hover state glow.
+
+---
+
 ## Acceptance Criteria Checklist
 - [x] Investigated supported Windows notification APIs and documented privacy limitations honestly.
 - [x] Proved real Windows OS security boundary via `UserNotificationListener` queries returning `Denied` for unpackaged desktop mode.

@@ -58,6 +58,24 @@ public partial class App : Application
             });
         }
 
+        if (e.Args.Contains("--demo-ytm"))
+        {
+            _islandWindow.UpdateMediaUI(new Nova.Media.MediaSessionSnapshot
+            {
+                SourceAppId = "msedge.exe",
+                SourceDisplayName = "YouTube Music",
+                PlaybackStatus = Nova.Media.MediaPlaybackStatus.Playing,
+                HasActiveSession = true,
+                TrackInfo = new Nova.Media.MediaTrackInfo
+                {
+                    Title = "Blinding Lights",
+                    Artist = "The Weeknd",
+                    AlbumTitle = "After Hours • YouTube Music"
+                },
+                Capabilities = Nova.Media.MediaCapabilities.All
+            });
+        }
+
         if (e.Args.Contains("--demo-notification"))
         {
             _islandWindow.NotificationService.PostNotification(new Nova.Notifications.NovaNotification
