@@ -111,7 +111,7 @@ public static class ScreenHelper
     /// <summary>
     /// Calculates the top-center position for a given window width and height within the work area.
     /// </summary>
-    public static Point CalculateTopCenter(RectDip workArea, double windowWidth, double marginTop = 12)
+    public static Point CalculateTopCenter(RectDip workArea, double windowWidth, double marginTop = 0.0)
     {
         double left = workArea.Left + (workArea.Width - windowWidth) / 2.0;
         double top = workArea.Top + marginTop;

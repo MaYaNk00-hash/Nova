@@ -14,7 +14,7 @@ public class IslandWindowTests
         Assert.True(IslandDimensions.CompactHeight > 30 && IslandDimensions.CompactHeight < 60, "CompactHeight should be sleek pill height.");
         Assert.True(IslandDimensions.ExpandedWidth > IslandDimensions.CompactWidth, "Expanded width must be larger than compact width.");
         Assert.True(IslandDimensions.ExpandedHeight > IslandDimensions.CompactHeight, "Expanded height must be larger than compact height.");
-        Assert.Equal(12.0, IslandDimensions.TopMargin);
+        Assert.Equal(0.0, IslandDimensions.TopMargin);
     }
 
     [Fact("Verify ScreenHelper top-center calculation")]

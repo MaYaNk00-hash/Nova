@@ -432,9 +432,10 @@ public partial class IslandWindow : Window
 
                 Width = IslandDimensions.CompactWindowWidth;
                 Height = IslandDimensions.CompactWindowHeight;
+                var workArea = ScreenHelper.GetWorkingArea(this);
+                Top = workArea.Top + IslandDimensions.TopMargin;
                 if (!_isManuallyPositioned)
                 {
-                    var workArea = ScreenHelper.GetWorkingArea(this);
                     Left = workArea.Left + (workArea.Width - Width) / 2.0;
                 }
             };
@@ -446,11 +447,17 @@ public partial class IslandWindow : Window
             targetPillHeight = _currentSlide == SlideView.Hud ? IslandDimensions.ExpandedHeight : IslandDimensions.ExpandedWorkspaceHeight;
             targetCornerRadius = IslandDimensions.ExpandedCornerRadius;
 
+            if (HeaderTabsRow != null)
+            {
+                HeaderTabsRow.Visibility = _currentSlide == SlideView.Hud ? Visibility.Collapsed : Visibility.Visible;
+            }
+
             Width = IslandDimensions.ExpandedWindowWidth;
             Height = IslandDimensions.ExpandedWindowHeight;
+            var workArea = ScreenHelper.GetWorkingArea(this);
+            Top = workArea.Top + IslandDimensions.TopMargin;
             if (!_isManuallyPositioned)
             {
-                var workArea = ScreenHelper.GetWorkingArea(this);
                 Left = workArea.Left + (workArea.Width - Width) / 2.0;
             }
 
@@ -459,6 +466,10 @@ public partial class IslandWindow : Window
             {
                 CompactPanel.Visibility = Visibility.Collapsed;
                 ExpandedPanel.Visibility = Visibility.Visible;
+                if (HeaderTabsRow != null)
+                {
+                    HeaderTabsRow.Visibility = _currentSlide == SlideView.Hud ? Visibility.Collapsed : Visibility.Visible;
+                }
                 ExpandedPanel.BeginAnimation(OpacityProperty, new DoubleAnimation(0.0, 1.0, TimeSpan.FromMilliseconds(160)));
             };
             CompactPanel.BeginAnimation(OpacityProperty, fadeCompact);
@@ -475,7 +486,7 @@ public partial class IslandWindow : Window
 
         var animWidth = new DoubleAnimation(currentWidth, targetPillWidth, duration) { EasingFunction = ease };
         var animHeight = new DoubleAnimation(currentHeight, targetPillHeight, duration) { EasingFunction = ease };
-        var animCorner = new CornerRadiusAnimation(PillBorder.CornerRadius, new CornerRadius(targetCornerRadius), duration) { EasingFunction = ease };
+        var animCorner = new CornerRadiusAnimation(PillBorder.CornerRadius, new CornerRadius(0, 0, targetCornerRadius, targetCornerRadius), duration) { EasingFunction = ease };
 
         animWidth.Completed += (s, e) =>
         {
@@ -488,7 +499,7 @@ public partial class IslandWindow : Window
 
         if (PillGlossShine != null)
         {
-            var animShineCorner = new CornerRadiusAnimation(PillGlossShine.CornerRadius, new CornerRadius(targetCornerRadius, targetCornerRadius, 0, 0), duration) { EasingFunction = ease };
+            var animShineCorner = new CornerRadiusAnimation(PillGlossShine.CornerRadius, new CornerRadius(0, 0, 0, 0), duration) { EasingFunction = ease };
             PillGlossShine.BeginAnimation(Border.CornerRadiusProperty, animShineCorner);
         }
 
@@ -611,7 +622,8 @@ public partial class IslandWindow : Window
         var workArea = ScreenHelper.GetWorkingArea(this);
         var clamped = ScreenHelper.ClampToWorkArea(workArea, Left, Top, Width, Height);
         Left = clamped.X;
-        Top = clamped.Y;
+        // Firmly fixed on the top edge rather than floating everywhere
+        Top = workArea.Top + IslandDimensions.TopMargin;
     }
 
     // SLIDE SWITCHING LOGIC WITH SMOOTH MOTIONS
@@ -649,6 +661,11 @@ public partial class IslandWindow : Window
         _currentSlide = targetSlide;
         UpdateTabButtons(targetSlide);
 
+        if (HeaderTabsRow != null)
+        {
+            HeaderTabsRow.Visibility = targetSlide == SlideView.Hud ? Visibility.Collapsed : Visibility.Visible;
+        }
+
         double targetHeight = targetSlide == SlideView.Hud ? IslandDimensions.ExpandedHeight : IslandDimensions.ExpandedWorkspaceHeight;
         var animHeight = new DoubleAnimation(PillBorder.ActualHeight, targetHeight, TimeSpan.FromMilliseconds(240))
         {
@@ -673,6 +690,18 @@ public partial class IslandWindow : Window
             case SlideView.Mascot:
                 TransitionSlide(SlideMascotPanel, SlideMascotTransform);
                 break;
+        }
+    }
+
+    private void BtnHudMascot_Click(object sender, RoutedEventArgs e)
+    {
+        if (_currentSlide == SlideView.Hud)
+        {
+            SwitchToSlide(SlideView.Mascot);
+        }
+        else
+        {
+            SwitchToSlide(SlideView.Hud);
         }
     }
 

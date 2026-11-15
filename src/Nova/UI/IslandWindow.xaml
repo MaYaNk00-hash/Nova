@@ -14,7 +14,13 @@
         Topmost="True"
         ResizeMode="NoResize"
         Width="960"
-        Height="380"
+        Height="440"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        TextOptions.TextFormattingMode="Display"
+        TextOptions.TextRenderingMode="ClearType"
+        RenderOptions.BitmapScalingMode="HighQuality"
+        RenderOptions.ClearTypeHint="Enabled"
         MouseMove="Window_MouseMove"
         MouseLeftButtonDown="Window_MouseLeftButtonDown"
         MouseRightButtonUp="Window_MouseRightButtonUp"
@@ -27,15 +33,15 @@
             <Setter Property="Background">
                 <Setter.Value>
                     <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                        <GradientStop Color="#1A2232" Offset="0.0"/>
-                        <GradientStop Color="#0F1420" Offset="1.0"/>
+                        <GradientStop Color="#1E283A" Offset="0.0"/>
+                        <GradientStop Color="#0F1624" Offset="1.0"/>
                     </LinearGradientBrush>
                 </Setter.Value>
             </Setter>
             <Setter Property="Foreground" Value="#E2E8F0"/>
-            <Setter Property="BorderBrush" Value="#2A384F"/>
+            <Setter Property="BorderBrush" Value="#2D3E56"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Padding" Value="7,3"/>
+            <Setter Property="Padding" Value="8,3.5"/>
             <Setter Property="FontSize" Value="10.5"/>
             <Setter Property="FontWeight" Value="Medium"/>
             <Setter Property="Cursor" Value="Hand"/>
@@ -45,7 +51,7 @@
                         <Border Background="{TemplateBinding Background}" 
                                 BorderBrush="{TemplateBinding BorderBrush}" 
                                 BorderThickness="{TemplateBinding BorderThickness}" 
-                                CornerRadius="5" 
+                                CornerRadius="6" 
                                 Padding="{TemplateBinding Padding}">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
@@ -57,8 +63,8 @@
                     <Setter Property="Background">
                         <Setter.Value>
                             <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                                <GradientStop Color="#25354F" Offset="0.0"/>
-                                <GradientStop Color="#152133" Offset="1.0"/>
+                                <GradientStop Color="#2C3E5E" Offset="0.0"/>
+                                <GradientStop Color="#162338" Offset="1.0"/>
                             </LinearGradientBrush>
                         </Setter.Value>
                     </Setter>
@@ -66,7 +72,7 @@
                     <Setter Property="Foreground" Value="#FFFFFF"/>
                 </Trigger>
                 <Trigger Property="IsPressed" Value="True">
-                    <Setter Property="Background" Value="#0D131C"/>
+                    <Setter Property="Background" Value="#0C121C"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
@@ -76,17 +82,17 @@
             <Setter Property="Background">
                 <Setter.Value>
                     <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                        <GradientStop Color="#1B263B" Offset="0.0"/>
-                        <GradientStop Color="#0F1624" Offset="1.0"/>
+                        <GradientStop Color="#1E2A40" Offset="0.0"/>
+                        <GradientStop Color="#101827" Offset="1.0"/>
                     </LinearGradientBrush>
                 </Setter.Value>
             </Setter>
             <Setter Property="Foreground" Value="#E2E8F0"/>
-            <Setter Property="BorderBrush" Value="#2E405C"/>
+            <Setter Property="BorderBrush" Value="#334766"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Width" Value="26"/>
-            <Setter Property="Height" Value="24"/>
-            <Setter Property="FontSize" Value="10.5"/>
+            <Setter Property="Width" Value="28"/>
+            <Setter Property="Height" Value="26"/>
+            <Setter Property="FontSize" Value="11"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
                 <Setter.Value>
@@ -94,7 +100,7 @@
                         <Border Background="{TemplateBinding Background}" 
                                 BorderBrush="{TemplateBinding BorderBrush}" 
                                 BorderThickness="{TemplateBinding BorderThickness}" 
-                                CornerRadius="6">
+                                CornerRadius="7">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                     </ControlTemplate>
@@ -105,8 +111,8 @@
                     <Setter Property="Background">
                         <Setter.Value>
                             <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                                <GradientStop Color="#283A5A" Offset="0.0"/>
-                                <GradientStop Color="#172336" Offset="1.0"/>
+                                <GradientStop Color="#2C4066" Offset="0.0"/>
+                                <GradientStop Color="#18273E" Offset="1.0"/>
                             </LinearGradientBrush>
                         </Setter.Value>
                     </Setter>
@@ -122,22 +128,22 @@
 
         <!-- Slide Switcher Tab Button style -->
         <Style x:Key="SlideTabButton" TargetType="Button">
-            <Setter Property="Background" Value="#111624"/>
+            <Setter Property="Background" Value="#101624"/>
             <Setter Property="Foreground" Value="#94A3B8"/>
             <Setter Property="BorderBrush" Value="#1E293B"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Padding" Value="8,2.5"/>
-            <Setter Property="FontSize" Value="9.5"/>
+            <Setter Property="Padding" Value="10,3.5"/>
+            <Setter Property="FontSize" Value="10"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="Margin" Value="2,0"/>
+            <Setter Property="Margin" Value="2.5,0"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
                         <Border Background="{TemplateBinding Background}" 
                                 BorderBrush="{TemplateBinding BorderBrush}" 
                                 BorderThickness="{TemplateBinding BorderThickness}" 
-                                CornerRadius="10" 
+                                CornerRadius="11" 
                                 Padding="{TemplateBinding Padding}">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
@@ -158,13 +164,13 @@
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="Foreground" Value="#94A3B8"/>
             <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Width" Value="22"/>
-            <Setter Property="Height" Value="22"/>
+            <Setter Property="Width" Value="24"/>
+            <Setter Property="Height" Value="24"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}" CornerRadius="11">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="12">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                     </ControlTemplate>
@@ -217,53 +223,54 @@
         </ContextMenu>
     </Window.Resources>
 
-    <Grid HorizontalAlignment="Center" VerticalAlignment="Top" Margin="10,4,10,10">
-        <!-- Main Island Pill Border with Obsidian Gloss & Cybernetic Specular Rim -->
+    <Grid HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,10">
+        <!-- Main Island Pill Border with Obsidian Gloss & Cybernetic Specular Rim (Height increased by 15%, docked firmly to top) -->
         <Border x:Name="PillBorder"
                 Width="210"
-                Height="42"
-                CornerRadius="21"
-                BorderThickness="1.2"
+                Height="48"
+                CornerRadius="0,0,24,24"
+                BorderThickness="1.2,0,1.2,1.2"
                 ClipToBounds="True"
                 Cursor="Hand"
+                VerticalAlignment="Top"
                 MouseLeftButtonDown="Pill_MouseLeftButtonDown">
             <Border.BorderBrush>
                 <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                    <GradientStop Color="#00F2FE" Offset="0.0"/>
+                    <GradientStop Color="#1E293B" Offset="0.0"/>
                     <GradientStop Color="#38BDF8" Offset="0.25"/>
-                    <GradientStop Color="#1E293B" Offset="0.7"/>
+                    <GradientStop Color="#1E293B" Offset="0.75"/>
                     <GradientStop Color="#0F172A" Offset="1.0"/>
                 </LinearGradientBrush>
             </Border.BorderBrush>
             <Border.Background>
                 <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                    <GradientStop Color="#0A0D14" Offset="0.0"/>
-                    <GradientStop Color="#05080E" Offset="0.5"/>
+                    <GradientStop Color="#0B0F19" Offset="0.0"/>
+                    <GradientStop Color="#060910" Offset="0.5"/>
                     <GradientStop Color="#020408" Offset="1.0"/>
                 </LinearGradientBrush>
             </Border.Background>
             <Border.Effect>
-                <DropShadowEffect BlurRadius="28" ShadowDepth="4" Direction="270" Color="#000000" Opacity="0.82"/>
+                <DropShadowEffect BlurRadius="28" ShadowDepth="4" Direction="270" Color="#000000" Opacity="0.85"/>
             </Border.Effect>
 
             <Grid>
                 <!-- Top Specular Rim Reflection Shine -->
                 <Border x:Name="PillGlossShine" 
-                        Height="18" 
+                        Height="14" 
                         VerticalAlignment="Top" 
-                        CornerRadius="21,21,0,0" 
+                        CornerRadius="0,0,0,0" 
                         IsHitTestVisible="False">
                     <Border.Background>
                         <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                            <GradientStop Color="#2AFFFFFF" Offset="0.0"/>
-                            <GradientStop Color="#07FFFFFF" Offset="0.45"/>
+                            <GradientStop Color="#2538BDF8" Offset="0.0"/>
+                            <GradientStop Color="#08FFFFFF" Offset="0.45"/>
                             <GradientStop Color="#00FFFFFF" Offset="1.0"/>
                         </LinearGradientBrush>
                     </Border.Background>
                 </Border>
 
-                <!-- COMPACT STATE VIEW (210x42 Sleek Pill) -->
-                <Grid x:Name="CompactPanel" Height="42" VerticalAlignment="Center" Margin="10,0">
+                <!-- COMPACT STATE VIEW (210x48 Sleek Pill with +15% height) -->
+                <Grid x:Name="CompactPanel" Height="48" VerticalAlignment="Center" Margin="10,0">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="*"/>
@@ -271,9 +278,9 @@
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
 
-                    <!-- Robot Mascot Companion (Compact 26px with glowing cyan LED eyes) -->
+                    <!-- Robot Mascot Companion (Compact 30px with glowing cyan LED eyes) -->
                     <robot:RobotCompanion x:Name="CompactRobot" 
-                                          CompanionSize="26" 
+                                          CompanionSize="30" 
                                           Grid.Column="0" 
                                           VerticalAlignment="Center" 
                                           Margin="0,0,8,0"/>
@@ -282,15 +289,15 @@
                     <StackPanel x:Name="CompactDefaultPanel" Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
                         <TextBlock Text="NOVA" 
                                    FontWeight="Bold" 
-                                   FontSize="12" 
+                                   FontSize="12.5" 
                                    Foreground="#F8FAFC" 
                                    VerticalAlignment="Center"/>
                         <Border Background="#0C1424" 
                                 BorderBrush="#00F2FE" 
                                 BorderThickness="0.8" 
                                 CornerRadius="4" 
-                                Padding="5,1" 
-                                Margin="6,0,0,0" 
+                                Padding="5,1.5" 
+                                Margin="7,0,0,0" 
                                 VerticalAlignment="Center">
                             <TextBlock Text="READY" 
                                        FontSize="8" 
@@ -308,7 +315,7 @@
                         </Grid.ColumnDefinitions>
                         <TextBlock x:Name="CompactMediaVisualizer" 
                                    Text="ılıll" 
-                                   FontSize="10" 
+                                   FontSize="11" 
                                    FontWeight="Bold" 
                                    Foreground="#00F2FE" 
                                    VerticalAlignment="Center" 
@@ -317,7 +324,7 @@
                         <TextBlock x:Name="CompactMediaText" 
                                    Grid.Column="1" 
                                    Text="Track • Artist" 
-                                   FontSize="10.5" 
+                                   FontSize="11" 
                                    FontWeight="Medium" 
                                    Foreground="#E2E8F0" 
                                    TextTrimming="CharacterEllipsis" 
@@ -326,9 +333,9 @@
                                 Grid.Column="2" 
                                 Style="{StaticResource IconButton}" 
                                 Content="▶" 
-                                Width="22" 
-                                Height="22" 
-                                FontSize="10" 
+                                Width="24" 
+                                Height="24" 
+                                FontSize="10.5" 
                                 ToolTip="Toggle Play/Pause" 
                                 Click="MediaPlayPause_Click" 
                                 Margin="4,0,0,0"/>
@@ -341,11 +348,11 @@
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
-                        <TextBlock Text="🔔" FontSize="10" Foreground="#F59E0B" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                        <TextBlock Text="🔔" FontSize="11" Foreground="#F59E0B" VerticalAlignment="Center" Margin="0,0,5,0"/>
                         <TextBlock x:Name="CompactNotificationText" 
                                    Grid.Column="1" 
                                    Text="Notification alert" 
-                                   FontSize="10" 
+                                   FontSize="10.5" 
                                    FontWeight="Medium" 
                                    Foreground="#F8FAFC" 
                                    TextTrimming="CharacterEllipsis" 
@@ -354,9 +361,9 @@
                                 Grid.Column="2" 
                                 Style="{StaticResource IconButton}" 
                                 Content="✕" 
-                                Width="18" 
-                                Height="18" 
-                                FontSize="8.5" 
+                                Width="20" 
+                                Height="20" 
+                                FontSize="9" 
                                 ToolTip="Dismiss Notification" 
                                 Click="DismissCurrentNotification_Click" 
                                 Margin="4,0,0,0"/>
@@ -366,7 +373,7 @@
                     <TextBlock x:Name="ClockText" 
                                Grid.Column="2" 
                                Text="12:00" 
-                               FontSize="11" 
+                               FontSize="11.5" 
                                Foreground="#94A3B8" 
                                VerticalAlignment="Center" 
                                Margin="0,0,8,0"/>
@@ -375,24 +382,24 @@
                     <Button Grid.Column="3" 
                             Style="{StaticResource IconButton}" 
                             Content="▾" 
-                            FontSize="12" 
+                            FontSize="12.5" 
                             ToolTip="Expand HUD Dashboard" 
                             Click="ExpandButton_Click"/>
                 </Grid>
 
-                <!-- EXPANDED STATE VIEW (Wide Panoramic HUD + Slides) -->
+                <!-- EXPANDED STATE VIEW (Wide Panoramic HUD + Slides, 15% Taller & Roomier) -->
                 <Grid x:Name="ExpandedPanel" 
                       Opacity="0" 
                       Visibility="Collapsed" 
-                      Margin="14,6,14,6">
+                      Margin="16,8,16,8">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
-                    <!-- TOP HEADER ROW: Slide Selector Tabs & Window Controls -->
-                    <Grid Grid.Row="0" Margin="0,0,0,6">
+                    <!-- TOP HEADER ROW: Slide Selector Tabs & Window Controls (Appears in Companion Workspace mode) -->
+                    <Grid x:Name="HeaderTabsRow" Grid.Row="0" Margin="0,0,0,10" Visibility="Collapsed">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="*"/>
@@ -401,18 +408,18 @@
 
                         <!-- Brand Badge -->
                         <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                            <Ellipse Width="7" Height="7" Fill="#00F2FE" Margin="0,0,6,0">
+                            <Ellipse Width="8" Height="8" Fill="#00F2FE" Margin="0,0,7,0">
                                 <Ellipse.Effect>
                                     <DropShadowEffect Color="#00F2FE" BlurRadius="6" ShadowDepth="0" Opacity="0.9"/>
                                 </Ellipse.Effect>
                             </Ellipse>
-                            <TextBlock Text="NOVA" FontWeight="Bold" FontSize="11" Foreground="#00F2FE" VerticalAlignment="Center"/>
-                            <TextBlock Text="HUD" FontWeight="SemiBold" FontSize="10" Foreground="#38BDF8" Margin="4,0,0,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="NOVA" FontWeight="Bold" FontSize="11.5" Foreground="#00F2FE" VerticalAlignment="Center"/>
+                            <TextBlock Text="WORKSPACE" FontWeight="SemiBold" FontSize="10.5" Foreground="#38BDF8" Margin="4,0,0,0" VerticalAlignment="Center"/>
                         </StackPanel>
 
                         <!-- Slide Navigation Pills -->
                         <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
-                            <Button x:Name="TabBtnHud" Style="{StaticResource SlideTabButton}" Content="📊 HUD" Click="TabBtnHud_Click" Background="#0284C7" Foreground="#FFFFFF" BorderBrush="#38BDF8"/>
+                            <Button x:Name="TabBtnHud" Style="{StaticResource SlideTabButton}" Content="📊 HUD" Click="TabBtnHud_Click"/>
                             <Button x:Name="TabBtnNotes" Style="{StaticResource SlideTabButton}" Content="📝 Notes" Click="TabBtnNotes_Click"/>
                             <Button x:Name="TabBtnTodos" Style="{StaticResource SlideTabButton}" Content="✅ Tasks" Click="TabBtnTodos_Click"/>
                             <Button x:Name="TabBtnTools" Style="{StaticResource SlideTabButton}" Content="⚡ Tools" Click="TabBtnTools_Click"/>
@@ -424,19 +431,19 @@
                             <Button Style="{StaticResource IconButton}" 
                                     x:Name="PinButton" 
                                     Content="📌" 
-                                    FontSize="10" 
+                                    FontSize="10.5" 
                                     ToolTip="Toggle Always On Top" 
                                     Click="PinButton_Click" 
                                     Margin="0,0,4,0"/>
                             <Button Style="{StaticResource IconButton}" 
                                     Content="—" 
-                                    FontSize="11" 
+                                    FontSize="11.5" 
                                     ToolTip="Hide to System Tray" 
                                     Click="HideButton_Click" 
                                     Margin="0,0,4,0"/>
                             <Button Style="{StaticResource IconButton}" 
                                     Content="▴" 
-                                    FontSize="12" 
+                                    FontSize="12.5" 
                                     ToolTip="Compact Pill" 
                                     Click="CompactButton_Click"/>
                         </StackPanel>
@@ -478,20 +485,20 @@
                         </Grid>
                     </Border>
 
-                    <!-- SLIDES CONTENT AREA (Row 2) -->
+                    <!-- SLIDES CONTENT AREA (Row 2, Roomier with +15% height) -->
                     <Grid Grid.Row="2">
 
-                        <!-- SLIDE 1: HUD BAR (Matching the user's reference image exactly!) -->
+                        <!-- SLIDE 1: HUD BAR (Matching the user's reference image with crisp graphics!) -->
                         <Grid x:Name="SlideHudPanel" Visibility="Visible">
                             <Grid.RenderTransform>
                                 <TranslateTransform x:Name="SlideHudTransform" X="0" Y="0"/>
                             </Grid.RenderTransform>
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="2.7*"/>
+                                <ColumnDefinition Width="2.75*"/>
                                 <ColumnDefinition Width="1"/>
                                 <ColumnDefinition Width="2.3*"/>
                                 <ColumnDefinition Width="1"/>
-                                <ColumnDefinition Width="3.0*"/>
+                                <ColumnDefinition Width="3.05*"/>
                             </Grid.ColumnDefinitions>
 
                             <!-- COLUMN 1: NOW PLAYING & MUSIC PLAYER -->
@@ -501,26 +508,35 @@
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
 
-                                <!-- Album Artwork Square -->
+                                <!-- Album Artwork Square (66x66 with high-definition styling & yellow Men At Work branding) -->
                                 <Border Grid.Column="0" 
-                                        Width="58" 
-                                        Height="58" 
-                                        CornerRadius="8" 
+                                        Width="66" 
+                                        Height="66" 
+                                        CornerRadius="10" 
                                         Background="#151E2E" 
-                                        BorderBrush="#2D3F5C" 
+                                        BorderBrush="#1E293B" 
                                         BorderThickness="1" 
                                         ClipToBounds="True" 
                                         HorizontalAlignment="Left" 
                                         VerticalAlignment="Center">
+                                    <Border.Effect>
+                                        <DropShadowEffect Color="#000000" BlurRadius="10" ShadowDepth="2" Opacity="0.5"/>
+                                    </Border.Effect>
                                     <Grid>
-                                        <Border x:Name="HudAlbumColorBack" Background="#FBBF24"/>
-                                        <TextBlock x:Name="MediaPlaceholderIcon" 
-                                                   Text="♫" 
-                                                   FontSize="20" 
-                                                   Foreground="#0B0F19" 
-                                                   FontWeight="Bold" 
-                                                   HorizontalAlignment="Center" 
-                                                   VerticalAlignment="Center"/>
+                                        <!-- Yellow Album Cover with MEN AT WORK branding matching reference photo -->
+                                        <Border x:Name="HudAlbumColorBack" Background="#FBBF24" CornerRadius="10">
+                                            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                                                <Border Background="#090D15" CornerRadius="2.5" Padding="4,1.5" Margin="0,0,0,3" HorizontalAlignment="Center">
+                                                    <TextBlock Text="MEN AT WORK" FontSize="6.5" FontWeight="Black" Foreground="#FBBF24" HorizontalAlignment="Center"/>
+                                                </Border>
+                                                <TextBlock x:Name="MediaPlaceholderIcon" 
+                                                           Text="♫" 
+                                                           FontSize="20" 
+                                                           Foreground="#090D15" 
+                                                           FontWeight="Bold" 
+                                                           HorizontalAlignment="Center"/>
+                                            </StackPanel>
+                                        </Border>
                                         <Image x:Name="MediaArtworkImage" 
                                                Stretch="UniformToFill" 
                                                Visibility="Collapsed"/>
@@ -528,7 +544,7 @@
                                 </Border>
 
                                 <!-- Details & Controls -->
-                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="10,0,0,0">
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="12,0,0,0">
                                     <Grid>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*"/>
@@ -536,14 +552,14 @@
                                         </Grid.ColumnDefinitions>
                                         <TextBlock x:Name="MediaTitleText" 
                                                    Text="No Media Playing" 
-                                                   FontSize="12.5" 
+                                                   FontSize="14.5" 
                                                    FontWeight="Bold" 
                                                    Foreground="#FFFFFF" 
                                                    TextTrimming="CharacterEllipsis"/>
                                         <TextBlock x:Name="MediaVisualizerText" 
                                                    Grid.Column="1"
                                                    Text="ılıll" 
-                                                   FontSize="9.5" 
+                                                   FontSize="10.5" 
                                                    FontWeight="Bold" 
                                                    Foreground="#38BDF8" 
                                                    Margin="4,0,0,0"
@@ -552,45 +568,59 @@
                                     </Grid>
                                     <TextBlock x:Name="MediaArtistText" 
                                                Text="Awaiting audio session" 
-                                               FontSize="9.5" 
-                                               Foreground="#9CA3AF" 
+                                               FontSize="11" 
+                                               Foreground="#94A3B8" 
                                                TextTrimming="CharacterEllipsis" 
-                                               Margin="0,1,0,3"/>
+                                               Margin="0,1.5,0,4"/>
 
-                                    <!-- Transport Controls & YouTube Music Button -->
-                                    <StackPanel Orientation="Horizontal" Margin="0,1,0,3">
-                                        <Button x:Name="MediaPrevBtn" 
-                                                Style="{StaticResource MediaControlButton}" 
-                                                Content="⏮" 
-                                                ToolTip="Previous Track" 
-                                                IsEnabled="False" 
-                                                Click="MediaPrev_Click" 
-                                                Margin="0,0,4,0"/>
-                                        <Button x:Name="MediaPlayPauseBtn" 
-                                                Style="{StaticResource MediaControlButton}" 
-                                                Content="▶" 
-                                                ToolTip="Play / Pause" 
-                                                IsEnabled="False" 
-                                                Click="MediaPlayPause_Click" 
-                                                Margin="0,0,4,0"/>
-                                        <Button x:Name="MediaNextBtn" 
-                                                Style="{StaticResource MediaControlButton}" 
-                                                Content="⏭" 
-                                                ToolTip="Next Track" 
-                                                IsEnabled="False" 
-                                                Click="MediaNext_Click" 
-                                                Margin="0,0,6,0"/>
-                                        <Button x:Name="BtnOpenYouTubeMusic" 
-                                                Style="{StaticResource IslandActionButton}" 
-                                                Content="🎵 YTM" 
-                                                ToolTip="Open YouTube Music" 
-                                                Click="OpenYouTubeMusic_Click" 
-                                                Padding="4,1" 
-                                                FontSize="7.5" 
-                                                VerticalAlignment="Center"/>
-                                        <!-- Hidden fallback to preserve bindings -->
-                                        <TextBlock x:Name="MediaBadgeText" Visibility="Collapsed" Text="PLAYING"/>
-                                    </StackPanel>
+                                    <!-- Transport Controls Capsule Pill (Matching Reference Image) -->
+                                    <Border Background="#121824" 
+                                            BorderBrush="#1E293B" 
+                                            BorderThickness="0.8" 
+                                            CornerRadius="13" 
+                                            Padding="4,2" 
+                                            HorizontalAlignment="Left" 
+                                            Margin="0,0,0,4">
+                                        <StackPanel Orientation="Horizontal">
+                                            <Button x:Name="MediaPrevBtn" 
+                                                    Style="{StaticResource MediaControlButton}" 
+                                                    Content="⏮" 
+                                                    ToolTip="Previous Track" 
+                                                    IsEnabled="False" 
+                                                    Click="MediaPrev_Click" 
+                                                    Width="26" 
+                                                    Height="22" 
+                                                    FontSize="10"/>
+                                            <Button x:Name="MediaPlayPauseBtn" 
+                                                    Style="{StaticResource MediaControlButton}" 
+                                                    Content="▶" 
+                                                    ToolTip="Play / Pause" 
+                                                    IsEnabled="False" 
+                                                    Click="MediaPlayPause_Click" 
+                                                    Width="28" 
+                                                    Height="22" 
+                                                    FontSize="11" 
+                                                    Margin="3,0"/>
+                                            <Button x:Name="MediaNextBtn" 
+                                                    Style="{StaticResource MediaControlButton}" 
+                                                    Content="⏭" 
+                                                    ToolTip="Next Track" 
+                                                    IsEnabled="False" 
+                                                    Click="MediaNext_Click" 
+                                                    Width="26" 
+                                                    Height="22" 
+                                                    FontSize="10"/>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Fallback buttons/text for bindings -->
+                                    <Button x:Name="BtnOpenYouTubeMusic" 
+                                            Style="{StaticResource IslandActionButton}" 
+                                            Content="🎵 YTM" 
+                                            ToolTip="Open YouTube Music" 
+                                            Click="OpenYouTubeMusic_Click" 
+                                            Visibility="Collapsed"/>
+                                    <TextBlock x:Name="MediaBadgeText" Visibility="Collapsed" Text="PLAYING"/>
 
                                     <!-- Track Timeline Progress Bar -->
                                     <Grid Margin="0,1,0,0">
@@ -601,34 +631,34 @@
                                         </Grid.ColumnDefinitions>
                                         <TextBlock x:Name="HudProgressElapsedText" 
                                                    Text="00:41" 
-                                                   FontSize="7.5" 
+                                                   FontSize="8.5" 
                                                    Foreground="#94A3B8" 
                                                    VerticalAlignment="Center" 
-                                                   Margin="0,0,5,0"/>
+                                                   Margin="0,0,6,0"/>
                                         <Border Grid.Column="1" 
-                                                Height="3" 
+                                                Height="3.5" 
                                                 Background="#1E293B" 
-                                                CornerRadius="1.5" 
+                                                CornerRadius="1.75" 
                                                 VerticalAlignment="Center">
                                             <Border x:Name="HudProgressBar" 
                                                     HorizontalAlignment="Left" 
-                                                    Width="45" 
-                                                    Background="#38BDF8" 
-                                                    CornerRadius="1.5"/>
+                                                    Width="50" 
+                                                    Background="#FFFFFF" 
+                                                    CornerRadius="1.75"/>
                                         </Border>
                                         <TextBlock x:Name="HudProgressTotalText" 
                                                    Grid.Column="2" 
                                                    Text="03:04" 
-                                                   FontSize="7.5" 
+                                                   FontSize="8.5" 
                                                    Foreground="#94A3B8" 
                                                    VerticalAlignment="Center" 
-                                                   Margin="5,0,0,0"/>
+                                                   Margin="6,0,0,0"/>
                                     </Grid>
                                 </StackPanel>
                             </Grid>
 
                             <!-- VERTICAL DIVIDER 1 -->
-                            <Border Grid.Column="1" Background="#1E293B" Margin="2,6"/>
+                            <Border Grid.Column="1" Background="#263449" Width="1" Margin="4,12"/>
 
                             <!-- COLUMN 2: DATE, 7-DAY CALENDAR & LARGE CLOCK -->
                             <Grid Grid.Column="2" Margin="8,0,8,0" VerticalAlignment="Center">
@@ -641,11 +671,11 @@
                                 <TextBlock x:Name="HudMonthText" 
                                            Grid.Column="0" 
                                            Text="Apr" 
-                                           FontSize="21" 
+                                           FontSize="28" 
                                            FontWeight="Bold" 
-                                           Foreground="#F8FAFC" 
+                                           Foreground="#FFFFFF" 
                                            VerticalAlignment="Center" 
-                                           Margin="0,0,10,0"/>
+                                           Margin="0,0,14,0"/>
 
                                 <!-- Calendar Strip & Clock -->
                                 <StackPanel Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center">
@@ -662,52 +692,52 @@
                                         </Grid.ColumnDefinitions>
 
                                         <!-- Monday -->
-                                        <StackPanel Grid.Column="0" HorizontalAlignment="Center" Margin="2,0">
-                                            <TextBlock x:Name="DayLabel0" Text="M" FontSize="7.5" Foreground="#94A3B8" HorizontalAlignment="Center"/>
-                                            <Border x:Name="DayBorder0" CornerRadius="3" Padding="2,0.5">
-                                                <TextBlock x:Name="DayNum0" Text="20" FontSize="9" FontWeight="Medium" Foreground="#E2E8F0" HorizontalAlignment="Center"/>
+                                        <StackPanel Grid.Column="0" HorizontalAlignment="Center" Margin="2.5,0">
+                                            <TextBlock x:Name="DayLabel0" Text="M" FontSize="8.5" Foreground="#94A3B8" HorizontalAlignment="Center"/>
+                                            <Border x:Name="DayBorder0" CornerRadius="3" Padding="2.5,1">
+                                                <TextBlock x:Name="DayNum0" Text="20" FontSize="10" FontWeight="Medium" Foreground="#E2E8F0" HorizontalAlignment="Center"/>
                                             </Border>
                                         </StackPanel>
                                         <!-- Tuesday -->
-                                        <StackPanel Grid.Column="1" HorizontalAlignment="Center" Margin="2,0">
-                                            <TextBlock x:Name="DayLabel1" Text="T" FontSize="7.5" Foreground="#94A3B8" HorizontalAlignment="Center"/>
-                                            <Border x:Name="DayBorder1" CornerRadius="3" Padding="2,0.5">
-                                                <TextBlock x:Name="DayNum1" Text="21" FontSize="9" FontWeight="Medium" Foreground="#E2E8F0" HorizontalAlignment="Center"/>
+                                        <StackPanel Grid.Column="1" HorizontalAlignment="Center" Margin="2.5,0">
+                                            <TextBlock x:Name="DayLabel1" Text="T" FontSize="8.5" Foreground="#94A3B8" HorizontalAlignment="Center"/>
+                                            <Border x:Name="DayBorder1" CornerRadius="3" Padding="2.5,1">
+                                                <TextBlock x:Name="DayNum1" Text="21" FontSize="10" FontWeight="Medium" Foreground="#E2E8F0" HorizontalAlignment="Center"/>
                                             </Border>
                                         </StackPanel>
                                         <!-- Wednesday -->
-                                        <StackPanel Grid.Column="2" HorizontalAlignment="Center" Margin="2,0">
-                                            <TextBlock x:Name="DayLabel2" Text="W" FontSize="7.5" Foreground="#94A3B8" HorizontalAlignment="Center"/>
-                                            <Border x:Name="DayBorder2" CornerRadius="3" Padding="2,0.5">
-                                                <TextBlock x:Name="DayNum2" Text="22" FontSize="9" FontWeight="Medium" Foreground="#E2E8F0" HorizontalAlignment="Center"/>
+                                        <StackPanel Grid.Column="2" HorizontalAlignment="Center" Margin="2.5,0">
+                                            <TextBlock x:Name="DayLabel2" Text="W" FontSize="8.5" Foreground="#94A3B8" HorizontalAlignment="Center"/>
+                                            <Border x:Name="DayBorder2" CornerRadius="3" Padding="2.5,1">
+                                                <TextBlock x:Name="DayNum2" Text="22" FontSize="10" FontWeight="Medium" Foreground="#E2E8F0" HorizontalAlignment="Center"/>
                                             </Border>
                                         </StackPanel>
                                         <!-- Thursday (Active Highlighted) -->
-                                        <StackPanel Grid.Column="3" HorizontalAlignment="Center" Margin="2,0">
-                                            <TextBlock x:Name="DayLabel3" Text="THU" FontSize="7.5" FontWeight="Bold" Foreground="#38BDF8" HorizontalAlignment="Center"/>
-                                            <Border x:Name="DayBorder3" Background="#38BDF8" CornerRadius="3" Padding="3,0.5">
-                                                <TextBlock x:Name="DayNum3" Text="23" FontSize="9" FontWeight="Bold" Foreground="#020817" HorizontalAlignment="Center"/>
+                                        <StackPanel Grid.Column="3" HorizontalAlignment="Center" Margin="2.5,0">
+                                            <TextBlock x:Name="DayLabel3" Text="THU" FontSize="8.5" FontWeight="Bold" Foreground="#38BDF8" HorizontalAlignment="Center"/>
+                                            <Border x:Name="DayBorder3" Background="#38BDF8" CornerRadius="3.5" Padding="4,1">
+                                                <TextBlock x:Name="DayNum3" Text="23" FontSize="10" FontWeight="Bold" Foreground="#020817" HorizontalAlignment="Center"/>
                                             </Border>
                                         </StackPanel>
                                         <!-- Friday -->
-                                        <StackPanel Grid.Column="4" HorizontalAlignment="Center" Margin="2,0">
-                                            <TextBlock x:Name="DayLabel4" Text="F" FontSize="7.5" Foreground="#94A3B8" HorizontalAlignment="Center"/>
-                                            <Border x:Name="DayBorder4" CornerRadius="3" Padding="2,0.5">
-                                                <TextBlock x:Name="DayNum4" Text="24" FontSize="9" FontWeight="Medium" Foreground="#E2E8F0" HorizontalAlignment="Center"/>
+                                        <StackPanel Grid.Column="4" HorizontalAlignment="Center" Margin="2.5,0">
+                                            <TextBlock x:Name="DayLabel4" Text="F" FontSize="8.5" Foreground="#94A3B8" HorizontalAlignment="Center"/>
+                                            <Border x:Name="DayBorder4" CornerRadius="3" Padding="2.5,1">
+                                                <TextBlock x:Name="DayNum4" Text="24" FontSize="10" FontWeight="Medium" Foreground="#E2E8F0" HorizontalAlignment="Center"/>
                                             </Border>
                                         </StackPanel>
                                         <!-- Saturday (Weekend) -->
-                                        <StackPanel Grid.Column="5" HorizontalAlignment="Center" Margin="2,0">
-                                            <TextBlock x:Name="DayLabel5" Text="S" FontSize="7.5" Foreground="#EF4444" HorizontalAlignment="Center"/>
-                                            <Border x:Name="DayBorder5" CornerRadius="3" Padding="2,0.5">
-                                                <TextBlock x:Name="DayNum5" Text="25" FontSize="9" FontWeight="Bold" Foreground="#EF4444" HorizontalAlignment="Center"/>
+                                        <StackPanel Grid.Column="5" HorizontalAlignment="Center" Margin="2.5,0">
+                                            <TextBlock x:Name="DayLabel5" Text="S" FontSize="8.5" Foreground="#EF4444" HorizontalAlignment="Center"/>
+                                            <Border x:Name="DayBorder5" CornerRadius="3" Padding="2.5,1">
+                                                <TextBlock x:Name="DayNum5" Text="25" FontSize="10" FontWeight="Bold" Foreground="#EF4444" HorizontalAlignment="Center"/>
                                             </Border>
                                         </StackPanel>
                                         <!-- Sunday (Weekend) -->
-                                        <StackPanel Grid.Column="6" HorizontalAlignment="Center" Margin="2,0">
-                                            <TextBlock x:Name="DayLabel6" Text="S" FontSize="7.5" Foreground="#EF4444" HorizontalAlignment="Center"/>
-                                            <Border x:Name="DayBorder6" CornerRadius="3" Padding="2,0.5">
-                                                <TextBlock x:Name="DayNum6" Text="26" FontSize="9" FontWeight="Bold" Foreground="#EF4444" HorizontalAlignment="Center"/>
+                                        <StackPanel Grid.Column="6" HorizontalAlignment="Center" Margin="2.5,0">
+                                            <TextBlock x:Name="DayLabel6" Text="S" FontSize="8.5" Foreground="#EF4444" HorizontalAlignment="Center"/>
+                                            <Border x:Name="DayBorder6" CornerRadius="3" Padding="2.5,1">
+                                                <TextBlock x:Name="DayNum6" Text="26" FontSize="10" FontWeight="Bold" Foreground="#EF4444" HorizontalAlignment="Center"/>
                                             </Border>
                                         </StackPanel>
                                     </Grid>
@@ -715,18 +745,18 @@
                                     <!-- Large Digital Clock -->
                                     <TextBlock x:Name="HudClockText" 
                                                Text="16:34" 
-                                               FontSize="17.5" 
+                                               FontSize="20" 
                                                FontWeight="Bold" 
                                                Foreground="#FFFFFF" 
                                                HorizontalAlignment="Center" 
                                                Margin="0,1,0,0"/>
 
                                     <!-- Bottom Center Capsule Handle (clickable to toggle slides) -->
-                                    <Border Width="34" 
-                                            Height="3.5" 
+                                    <Border Width="38" 
+                                            Height="4" 
                                             Background="#475569" 
-                                            CornerRadius="1.75" 
-                                            Margin="0,3,0,0" 
+                                            CornerRadius="2" 
+                                            Margin="0,4,0,0" 
                                             HorizontalAlignment="Center" 
                                             ToolTip="Click to toggle Slides workspace" 
                                             Cursor="Hand" 
@@ -735,7 +765,7 @@
                             </Grid>
 
                             <!-- VERTICAL DIVIDER 2 -->
-                            <Border Grid.Column="3" Background="#1E293B" Margin="2,6"/>
+                            <Border Grid.Column="3" Background="#263449" Width="1" Margin="4,12"/>
 
                             <!-- COLUMN 3: SYSTEM MONITOR & HARDWARE STATS + VOLUME -->
                             <Grid Grid.Column="4" Margin="8,0,4,0" VerticalAlignment="Center">
@@ -746,79 +776,79 @@
                                 </Grid.ColumnDefinitions>
 
                                 <!-- Hardware Metrics Rows -->
-                                <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,8,0">
+                                <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,10,0">
                                     <!-- Header: Title + Load Badge -->
-                                    <Grid Margin="0,0,0,3">
+                                    <Grid Margin="0,0,0,4">
                                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                            <TextBlock Text="💻" FontSize="8.5" Margin="0,0,4,0" VerticalAlignment="Center"/>
-                                            <TextBlock Text="System Monitor" FontSize="9" FontWeight="Bold" Foreground="#E2E8F0" VerticalAlignment="Center"/>
+                                            <TextBlock Text="💻" FontSize="9.5" Margin="0,0,4,0" VerticalAlignment="Center"/>
+                                            <TextBlock Text="System Monitor" FontSize="10" FontWeight="Bold" Foreground="#E2E8F0" VerticalAlignment="Center"/>
                                         </StackPanel>
-                                        <Border HorizontalAlignment="Right" Background="#052E16" BorderBrush="#22C55E" BorderThickness="0.8" CornerRadius="3" Padding="4,0.5">
-                                            <TextBlock x:Name="HudOverallLoadBadge" Text="8%" FontSize="7.5" FontWeight="Bold" Foreground="#22C55E"/>
+                                        <Border HorizontalAlignment="Right" Background="#052E16" BorderBrush="#22C55E" BorderThickness="0.8" CornerRadius="3" Padding="4,1">
+                                            <TextBlock x:Name="HudOverallLoadBadge" Text="8%" FontSize="8.5" FontWeight="Bold" Foreground="#22C55E"/>
                                         </Border>
                                     </Grid>
 
                                     <!-- CPU Metric -->
-                                    <Grid Margin="0,1">
+                                    <Grid Margin="0,1.5">
                                         <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="28"/>
+                                            <ColumnDefinition Width="32"/>
                                             <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="26"/>
+                                            <ColumnDefinition Width="30"/>
                                         </Grid.ColumnDefinitions>
-                                        <TextBlock Text="CPU" FontSize="7.5" FontWeight="Bold" Foreground="#38BDF8" VerticalAlignment="Center"/>
-                                        <Border Grid.Column="1" Height="3.5" Background="#131B29" CornerRadius="1.75" Margin="3,0" VerticalAlignment="Center">
-                                            <Border x:Name="HudCpuBar" HorizontalAlignment="Left" Width="10" Background="#38BDF8" CornerRadius="1.75"/>
+                                        <TextBlock Text="CPU" FontSize="8.5" FontWeight="Bold" Foreground="#38BDF8" VerticalAlignment="Center"/>
+                                        <Border Grid.Column="1" Height="4.5" Background="#101726" BorderBrush="#1E293B" BorderThickness="0.8" CornerRadius="2.25" Margin="3,0" VerticalAlignment="Center">
+                                            <Border x:Name="HudCpuBar" HorizontalAlignment="Left" Width="10" Background="#38BDF8" CornerRadius="2.25"/>
                                         </Border>
-                                        <TextBlock x:Name="HudCpuPercentText" Grid.Column="2" Text="8%" FontSize="7.5" FontWeight="SemiBold" Foreground="#38BDF8" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                        <TextBlock x:Name="HudCpuPercentText" Grid.Column="2" Text="8%" FontSize="8.5" FontWeight="SemiBold" Foreground="#38BDF8" HorizontalAlignment="Right" VerticalAlignment="Center"/>
                                     </Grid>
 
                                     <!-- RAM Metric -->
-                                    <Grid Margin="0,1">
+                                    <Grid Margin="0,1.5">
                                         <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="28"/>
+                                            <ColumnDefinition Width="32"/>
                                             <ColumnDefinition Width="*"/>
                                             <ColumnDefinition Width="Auto"/>
                                         </Grid.ColumnDefinitions>
-                                        <TextBlock Text="RAM" FontSize="7.5" FontWeight="Bold" Foreground="#22C55E" VerticalAlignment="Center"/>
-                                        <Border Grid.Column="1" Height="3.5" Background="#131B29" CornerRadius="1.75" Margin="3,0" VerticalAlignment="Center">
-                                            <Border x:Name="HudRamBar" HorizontalAlignment="Left" Width="60" Background="#22C55E" CornerRadius="1.75"/>
+                                        <TextBlock Text="RAM" FontSize="8.5" FontWeight="Bold" Foreground="#22C55E" VerticalAlignment="Center"/>
+                                        <Border Grid.Column="1" Height="4.5" Background="#101726" BorderBrush="#1E293B" BorderThickness="0.8" CornerRadius="2.25" Margin="3,0" VerticalAlignment="Center">
+                                            <Border x:Name="HudRamBar" HorizontalAlignment="Left" Width="60" Background="#22C55E" CornerRadius="2.25"/>
                                         </Border>
                                         <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                                            <TextBlock x:Name="HudRamPercentText" Text="76%" FontSize="7.5" FontWeight="SemiBold" Foreground="#22C55E"/>
-                                            <TextBlock x:Name="HudRamUsageText" Text="11.8/16GB" FontSize="6.5" Foreground="#64748B" Margin="3,0,0,0"/>
+                                            <TextBlock x:Name="HudRamPercentText" Text="76%" FontSize="8.5" FontWeight="SemiBold" Foreground="#22C55E"/>
+                                            <TextBlock x:Name="HudRamUsageText" Text="11.8/16GB" FontSize="7.5" Foreground="#64748B" Margin="3,0,0,0"/>
                                         </StackPanel>
                                     </Grid>
 
                                     <!-- DISK Metric -->
-                                    <Grid Margin="0,1">
+                                    <Grid Margin="0,1.5">
                                         <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="28"/>
+                                            <ColumnDefinition Width="32"/>
                                             <ColumnDefinition Width="*"/>
                                             <ColumnDefinition Width="Auto"/>
                                         </Grid.ColumnDefinitions>
-                                        <TextBlock Text="DISK" FontSize="7.5" FontWeight="Bold" Foreground="#F97316" VerticalAlignment="Center"/>
-                                        <Border Grid.Column="1" Height="3.5" Background="#131B29" CornerRadius="1.75" Margin="3,0" VerticalAlignment="Center">
-                                            <Border x:Name="HudDiskBar" HorizontalAlignment="Left" Width="30" Background="#F97316" CornerRadius="1.75"/>
+                                        <TextBlock Text="DISK" FontSize="8.5" FontWeight="Bold" Foreground="#F97316" VerticalAlignment="Center"/>
+                                        <Border Grid.Column="1" Height="4.5" Background="#101726" BorderBrush="#1E293B" BorderThickness="0.8" CornerRadius="2.25" Margin="3,0" VerticalAlignment="Center">
+                                            <Border x:Name="HudDiskBar" HorizontalAlignment="Left" Width="30" Background="#F97316" CornerRadius="2.25"/>
                                         </Border>
                                         <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                                            <TextBlock x:Name="HudDiskPercentText" Text="34%" FontSize="7.5" FontWeight="SemiBold" Foreground="#F97316"/>
-                                            <TextBlock x:Name="HudDiskUsageText" Text="184/470GB" FontSize="6.5" Foreground="#64748B" Margin="3,0,0,0"/>
+                                            <TextBlock x:Name="HudDiskPercentText" Text="34%" FontSize="8.5" FontWeight="SemiBold" Foreground="#F97316"/>
+                                            <TextBlock x:Name="HudDiskUsageText" Text="184/470GB" FontSize="7.5" Foreground="#64748B" Margin="3,0,0,0"/>
                                         </StackPanel>
                                     </Grid>
                                 </StackPanel>
 
                                 <!-- Volume Vertical Pill Capsule -->
                                 <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="4,0,8,0">
-                                    <TextBlock x:Name="HudVolumeLevelText" Text="100" FontSize="7" FontWeight="Bold" Foreground="#E2E8F0" HorizontalAlignment="Center" Margin="0,0,0,1"/>
+                                    <TextBlock x:Name="HudVolumeLevelText" Text="100" FontSize="8" FontWeight="Bold" Foreground="#E2E8F0" HorizontalAlignment="Center" Margin="0,0,0,2"/>
                                     <Border x:Name="HudVolumePill" 
-                                            Width="12" 
-                                            Height="38" 
-                                            CornerRadius="6" 
+                                            Width="14" 
+                                            Height="46" 
+                                            CornerRadius="7" 
                                             Background="#38BDF8" 
-                                            ToolTip="System Volume" 
+                                            ToolTip="System Volume (Click to toggle Mute)" 
                                             Cursor="Hand" 
                                             MouseLeftButtonDown="VolumePill_MouseLeftButtonDown"/>
-                                    <TextBlock Text="🔊" FontSize="8" Foreground="#38BDF8" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                                    <TextBlock Text="🔊" FontSize="9.5" Foreground="#38BDF8" HorizontalAlignment="Center" Margin="0,2,0,0"/>
                                 </StackPanel>
 
                                 <!-- Action Quick Buttons (Mascot & Settings) -->
@@ -826,14 +856,18 @@
                                     <Button x:Name="BtnHudMascot" 
                                             Style="{StaticResource IconButton}" 
                                             Content="🤖" 
-                                            FontSize="11" 
+                                            Width="28" 
+                                            Height="28" 
+                                            FontSize="12" 
                                             ToolTip="Switch to Mascot Companion" 
-                                            Click="TabBtnMascot_Click" 
-                                            Margin="0,0,0,3"/>
+                                            Click="BtnHudMascot_Click" 
+                                            Margin="0,0,0,4"/>
                                     <Button x:Name="BtnHudSettings" 
                                             Style="{StaticResource IconButton}" 
                                             Content="⚙" 
-                                            FontSize="11" 
+                                            Width="28" 
+                                            Height="28" 
+                                            FontSize="12" 
                                             ToolTip="Options / Menu" 
                                             Click="BtnSettings_Click"/>
                                 </StackPanel>
@@ -851,21 +885,21 @@
                             </Grid.RowDefinitions>
 
                             <!-- Notes Toolbar -->
-                            <Grid Grid.Row="0" Margin="4,0,4,6">
+                            <Grid Grid.Row="0" Margin="4,0,4,8">
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                    <TextBlock Text="📝 Quick Notes" FontWeight="Bold" FontSize="11" Foreground="#38BDF8" VerticalAlignment="Center"/>
-                                    <TextBlock x:Name="NotesCharCountText" Text="0 chars" FontSize="8.5" Foreground="#64748B" Margin="10,0,0,0" VerticalAlignment="Center"/>
-                                    <TextBlock x:Name="NotesWordCountText" Text="0 words" FontSize="8.5" Foreground="#64748B" Margin="6,0,0,0" VerticalAlignment="Center"/>
-                                    <TextBlock x:Name="NotesCopyFeedbackText" Text="" FontSize="8.5" FontWeight="Bold" Foreground="#22C55E" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="📝 Quick Notes" FontWeight="Bold" FontSize="11.5" Foreground="#38BDF8" VerticalAlignment="Center"/>
+                                    <TextBlock x:Name="NotesCharCountText" Text="0 chars" FontSize="9" Foreground="#64748B" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                                    <TextBlock x:Name="NotesWordCountText" Text="0 words" FontSize="9" Foreground="#64748B" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                                    <TextBlock x:Name="NotesCopyFeedbackText" Text="" FontSize="9" FontWeight="Bold" Foreground="#22C55E" Margin="10,0,0,0" VerticalAlignment="Center"/>
                                 </StackPanel>
                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                                    <Button x:Name="NotesCopyBtn" Style="{StaticResource IslandActionButton}" Content="📋 Copy Notes" ToolTip="Copy all notes to clipboard" Click="NotesCopy_Click" Margin="0,0,6,0" Padding="6,2" FontSize="8.5"/>
-                                    <Button x:Name="NotesClearBtn" Style="{StaticResource IslandActionButton}" Content="🗑 Clear" ToolTip="Clear scratchpad" Click="NotesClear_Click" Padding="6,2" FontSize="8.5"/>
+                                    <Button x:Name="NotesCopyBtn" Style="{StaticResource IslandActionButton}" Content="📋 Copy Notes" ToolTip="Copy all notes to clipboard" Click="NotesCopy_Click" Margin="0,0,6,0" Padding="8,3" FontSize="9"/>
+                                    <Button x:Name="NotesClearBtn" Style="{StaticResource IslandActionButton}" Content="🗑 Clear" ToolTip="Clear scratchpad" Click="NotesClear_Click" Padding="8,3" FontSize="9"/>
                                 </StackPanel>
                             </Grid>
 
                             <!-- Text Editor Area -->
-                            <Border Grid.Row="1" Background="#0C101A" BorderBrush="#1E293B" BorderThickness="1" CornerRadius="8" Padding="10">
+                            <Border Grid.Row="1" Background="#0C101A" BorderBrush="#1E293B" BorderThickness="1" CornerRadius="8" Padding="12">
                                 <TextBox x:Name="NotesTextBox" 
                                          Background="Transparent" 
                                          Foreground="#F8FAFC" 
@@ -874,7 +908,7 @@
                                          AcceptsReturn="True" 
                                          TextWrapping="Wrap" 
                                          VerticalScrollBarVisibility="Auto" 
-                                         FontSize="11.5" 
+                                         FontSize="12" 
                                          TextChanged="NotesTextBox_TextChanged"/>
                             </Border>
                         </Grid>
@@ -891,18 +925,18 @@
                             </Grid.RowDefinitions>
 
                             <!-- Add Task Input Row -->
-                            <Grid Grid.Row="0" Margin="4,0,4,6">
+                            <Grid Grid.Row="0" Margin="4,0,4,8">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
-                                <Border Background="#0C101A" BorderBrush="#1E293B" BorderThickness="1" CornerRadius="6" Padding="6,2">
+                                <Border Background="#0C101A" BorderBrush="#1E293B" BorderThickness="1" CornerRadius="6" Padding="8,3">
                                     <TextBox x:Name="TodoInputBox" 
                                              Background="Transparent" 
                                              Foreground="#F8FAFC" 
                                              CaretBrush="#00F2FE" 
                                              BorderThickness="0" 
-                                             FontSize="11" 
+                                             FontSize="11.5" 
                                              KeyDown="TodoInputBox_KeyDown"/>
                                 </Border>
                                 <Button x:Name="TodoAddBtn" 
@@ -911,25 +945,25 @@
                                         Content="➕ Add Task" 
                                         Click="TodoAdd_Click" 
                                         Margin="6,0,0,0" 
-                                        Padding="8,3" 
-                                        FontSize="9.5"/>
+                                        Padding="10,4" 
+                                        FontSize="10"/>
                             </Grid>
 
                             <!-- Scrollable Tasks List -->
-                            <Border Grid.Row="1" Background="#0C101A" BorderBrush="#1E293B" BorderThickness="1" CornerRadius="8" Padding="6,4">
+                            <Border Grid.Row="1" Background="#0C101A" BorderBrush="#1E293B" BorderThickness="1" CornerRadius="8" Padding="8,6">
                                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                                     <StackPanel x:Name="TodoItemsContainer"/>
                                 </ScrollViewer>
                             </Border>
 
                             <!-- Filter & Status Footer -->
-                            <Grid Grid.Row="2" Margin="4,6,4,0">
-                                <TextBlock x:Name="TodoCountText" Text="0 active tasks" FontSize="8.5" Foreground="#64748B" VerticalAlignment="Center"/>
+                            <Grid Grid.Row="2" Margin="4,8,4,0">
+                                <TextBlock x:Name="TodoCountText" Text="0 active tasks" FontSize="9" Foreground="#64748B" VerticalAlignment="Center"/>
                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                                    <Button x:Name="TodoFilterAllBtn" Style="{StaticResource SlideTabButton}" Content="All" Click="TodoFilterAll_Click" Padding="6,1.5"/>
-                                    <Button x:Name="TodoFilterActiveBtn" Style="{StaticResource SlideTabButton}" Content="Active" Click="TodoFilterActive_Click" Padding="6,1.5"/>
-                                    <Button x:Name="TodoFilterDoneBtn" Style="{StaticResource SlideTabButton}" Content="Done" Click="TodoFilterDone_Click" Padding="6,1.5"/>
-                                    <Button x:Name="TodoClearCompletedBtn" Style="{StaticResource IslandActionButton}" Content="Clear Completed" Click="TodoClearCompleted_Click" Margin="6,0,0,0" Padding="6,1.5" FontSize="8"/>
+                                    <Button x:Name="TodoFilterAllBtn" Style="{StaticResource SlideTabButton}" Content="All" Click="TodoFilterAll_Click" Padding="8,2"/>
+                                    <Button x:Name="TodoFilterActiveBtn" Style="{StaticResource SlideTabButton}" Content="Active" Click="TodoFilterActive_Click" Padding="8,2"/>
+                                    <Button x:Name="TodoFilterDoneBtn" Style="{StaticResource SlideTabButton}" Content="Done" Click="TodoFilterDone_Click" Padding="8,2"/>
+                                    <Button x:Name="TodoClearCompletedBtn" Style="{StaticResource IslandActionButton}" Content="Clear Completed" Click="TodoClearCompleted_Click" Margin="6,0,0,0" Padding="8,2" FontSize="8.5"/>
                                 </StackPanel>
                             </Grid>
                         </Grid>
@@ -945,37 +979,37 @@
                             </Grid.ColumnDefinitions>
 
                             <!-- Left: Focus / Pomodoro Timer -->
-                            <Border Grid.Column="0" Background="#0C101A" BorderBrush="#1E293B" BorderThickness="1" CornerRadius="8" Padding="12" Margin="0,0,6,0">
+                            <Border Grid.Column="0" Background="#0C101A" BorderBrush="#1E293B" BorderThickness="1" CornerRadius="8" Padding="14" Margin="0,0,6,0">
                                 <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                                    <TextBlock Text="⏱ Focus Timer" FontWeight="Bold" FontSize="11" Foreground="#38BDF8" HorizontalAlignment="Center" Margin="0,0,0,4"/>
-                                    <TextBlock x:Name="TimerDisplayText" Text="25:00" FontSize="28" FontWeight="Bold" Foreground="#FFFFFF" HorizontalAlignment="Center">
+                                    <TextBlock Text="⏱ Focus Timer" FontWeight="Bold" FontSize="11.5" Foreground="#38BDF8" HorizontalAlignment="Center" Margin="0,0,0,6"/>
+                                    <TextBlock x:Name="TimerDisplayText" Text="25:00" FontSize="32" FontWeight="Bold" Foreground="#FFFFFF" HorizontalAlignment="Center">
                                         <TextBlock.Effect>
-                                            <DropShadowEffect Color="#38BDF8" BlurRadius="12" ShadowDepth="0" Opacity="0.5"/>
+                                            <DropShadowEffect Color="#38BDF8" BlurRadius="14" ShadowDepth="0" Opacity="0.55"/>
                                         </TextBlock.Effect>
                                     </TextBlock>
-                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,8,0,8">
-                                        <Button x:Name="TimerStartPauseBtn" Style="{StaticResource IslandActionButton}" Content="▶ Start" Click="TimerStartPause_Click" Margin="0,0,6,0" Padding="12,3" FontSize="10"/>
-                                        <Button x:Name="TimerResetBtn" Style="{StaticResource IslandActionButton}" Content="↺ Reset" Click="TimerReset_Click" Padding="10,3" FontSize="10"/>
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,10,0,10">
+                                        <Button x:Name="TimerStartPauseBtn" Style="{StaticResource IslandActionButton}" Content="▶ Start" Click="TimerStartPause_Click" Margin="0,0,6,0" Padding="14,4" FontSize="10.5"/>
+                                        <Button x:Name="TimerResetBtn" Style="{StaticResource IslandActionButton}" Content="↺ Reset" Click="TimerReset_Click" Padding="12,4" FontSize="10.5"/>
                                     </StackPanel>
                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                        <Button x:Name="TimerPreset25Btn" Style="{StaticResource SlideTabButton}" Content="25m Focus" Click="TimerPreset25_Click" Padding="6,2"/>
-                                        <Button x:Name="TimerPreset5Btn" Style="{StaticResource SlideTabButton}" Content="5m Break" Click="TimerPreset5_Click" Padding="6,2"/>
-                                        <Button x:Name="TimerPreset15Btn" Style="{StaticResource SlideTabButton}" Content="15m Rest" Click="TimerPreset15_Click" Padding="6,2"/>
+                                        <Button x:Name="TimerPreset25Btn" Style="{StaticResource SlideTabButton}" Content="25m Focus" Click="TimerPreset25_Click" Padding="8,2.5"/>
+                                        <Button x:Name="TimerPreset5Btn" Style="{StaticResource SlideTabButton}" Content="5m Break" Click="TimerPreset5_Click" Padding="8,2.5"/>
+                                        <Button x:Name="TimerPreset15Btn" Style="{StaticResource SlideTabButton}" Content="15m Rest" Click="TimerPreset15_Click" Padding="8,2.5"/>
                                     </StackPanel>
                                 </StackPanel>
                             </Border>
 
                             <!-- Right: System Power Launchers -->
-                            <Border Grid.Column="1" Background="#0C101A" BorderBrush="#1E293B" BorderThickness="1" CornerRadius="8" Padding="12" Margin="6,0,0,0">
+                            <Border Grid.Column="1" Background="#0C101A" BorderBrush="#1E293B" BorderThickness="1" CornerRadius="8" Padding="14" Margin="6,0,0,0">
                                 <StackPanel VerticalAlignment="Center">
-                                    <TextBlock Text="⚡ Quick Launchers" FontWeight="Bold" FontSize="11" Foreground="#38BDF8" Margin="0,0,0,8"/>
+                                    <TextBlock Text="⚡ Quick Launchers" FontWeight="Bold" FontSize="11.5" Foreground="#38BDF8" Margin="0,0,0,10"/>
                                     <UniformGrid Columns="2">
-                                        <Button Style="{StaticResource IslandActionButton}" Content="🧮 Calculator" Click="LaunchCalc_Click" Margin="2,3" Padding="6,4"/>
-                                        <Button Style="{StaticResource IslandActionButton}" Content="📝 Notepad" Click="LaunchNotepad_Click" Margin="2,3" Padding="6,4"/>
-                                        <Button Style="{StaticResource IslandActionButton}" Content="✂ Snipping Tool" Click="LaunchSnip_Click" Margin="2,3" Padding="6,4"/>
-                                        <Button Style="{StaticResource IslandActionButton}" Content="⚙ Task Manager" Click="LaunchTaskMgr_Click" Margin="2,3" Padding="6,4"/>
+                                        <Button Style="{StaticResource IslandActionButton}" Content="🧮 Calculator" Click="LaunchCalc_Click" Margin="2,4" Padding="8,5"/>
+                                        <Button Style="{StaticResource IslandActionButton}" Content="📝 Notepad" Click="LaunchNotepad_Click" Margin="2,4" Padding="8,5"/>
+                                        <Button Style="{StaticResource IslandActionButton}" Content="✂ Snipping Tool" Click="LaunchSnip_Click" Margin="2,4" Padding="8,5"/>
+                                        <Button Style="{StaticResource IslandActionButton}" Content="⚙ Task Manager" Click="LaunchTaskMgr_Click" Margin="2,4" Padding="8,5"/>
                                     </UniformGrid>
-                                    <Button Style="{StaticResource IslandActionButton}" Content="🎵 Open YouTube Music" Click="OpenYouTubeMusic_Click" Margin="2,6,2,0" Padding="6,4" Background="#1E1B4B" BorderBrush="#6366F1"/>
+                                    <Button Style="{StaticResource IslandActionButton}" Content="🎵 Open YouTube Music" Click="OpenYouTubeMusic_Click" Margin="2,8,2,0" Padding="8,5" Background="#1E1B4B" BorderBrush="#6366F1"/>
                                 </StackPanel>
                             </Border>
                         </Grid>
@@ -985,38 +1019,38 @@
                             <Grid.RenderTransform>
                                 <TranslateTransform x:Name="SlideMascotTransform" X="0" Y="0"/>
                             </Grid.RenderTransform>
-                            <Border Background="#0C101A" BorderBrush="#1E293B" BorderThickness="1" CornerRadius="8" Padding="12">
+                            <Border Background="#0C101A" BorderBrush="#1E293B" BorderThickness="1" CornerRadius="8" Padding="14">
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="Auto"/>
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
 
-                                    <!-- Showcase Robot (46px) -->
+                                    <!-- Showcase Robot (50px) -->
                                     <robot:RobotCompanion x:Name="ExpandedRobot" 
-                                                          CompanionSize="46" 
+                                                          CompanionSize="50" 
                                                           Grid.Column="0" 
                                                           VerticalAlignment="Center" 
-                                                          Margin="0,0,16,0"/>
+                                                          Margin="0,0,18,0"/>
 
                                     <!-- Status & Controls -->
                                     <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                         <TextBlock x:Name="RobotStatusText" 
                                                    Text="COMPANION • ACTIVE" 
-                                                   FontSize="10" 
+                                                   FontSize="10.5" 
                                                    FontWeight="Bold" 
                                                    Foreground="#00F2FE" 
-                                                   Margin="0,0,0,2"/>
+                                                   Margin="0,0,0,3"/>
                                         <TextBlock x:Name="EventStatusText" 
                                                    Text="BUS: READY • 0 EVENTS" 
-                                                   FontSize="8" 
+                                                   FontSize="8.5" 
                                                    FontWeight="Medium" 
                                                    Foreground="#94A3B8" 
-                                                   Margin="0,0,0,6"/>
+                                                   Margin="0,0,0,8"/>
                                         <WrapPanel>
-                                            <Button Style="{StaticResource IslandActionButton}" Content="✨ Happy" Click="BtnExcited_Click" Margin="0,0,4,4"/>
-                                            <Button Style="{StaticResource IslandActionButton}" Content="❓ Confused" Click="BtnConfused_Click" Margin="0,0,4,4"/>
-                                            <Button Style="{StaticResource IslandActionButton}" Content="👋 Nod" Click="BtnNod_Click" Margin="0,0,4,4"/>
+                                            <Button Style="{StaticResource IslandActionButton}" Content="✨ Happy" Click="BtnExcited_Click" Margin="0,0,5,5"/>
+                                            <Button Style="{StaticResource IslandActionButton}" Content="❓ Confused" Click="BtnConfused_Click" Margin="0,0,5,5"/>
+                                            <Button Style="{StaticResource IslandActionButton}" Content="👋 Nod" Click="BtnNod_Click" Margin="0,0,5,5"/>
                                         </WrapPanel>
                                     </StackPanel>
                                 </Grid>
