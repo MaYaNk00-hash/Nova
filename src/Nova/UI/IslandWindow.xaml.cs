@@ -1,29 +1,60 @@
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interop;
+using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Threading;
 using Nova.Core;
 using Nova.Events;
 using Nova.Media;
 using Nova.Notifications;
+using Nova.Storage;
+using Nova.SystemMonitor;
 using Nova.UI.Robot;
 
 namespace Nova.UI;
 
 public partial class IslandWindow : Window
 {
+    private enum SlideView
+    {
+        Hud,
+        Notes,
+        Todos,
+        Tools,
+        Mascot
+    }
+
     private readonly TrayManager _trayManager;
     private readonly DispatcherTimer _clockTimer;
+    private readonly DispatcherTimer _notesSaveTimer;
+    private readonly DispatcherTimer _focusTimer;
     private readonly RobotController _robotController;
     private readonly EventEngine _eventEngine;
     private readonly IMediaService _mediaService;
     private readonly INotificationService _notificationService;
+    private readonly SystemMonitorService _systemMonitor = new();
     private readonly List<IDisposable> _subscriptions = new();
+
     private MediaSessionSnapshot? _lastMediaSnapshot;
     private bool _isManuallyPositioned = false;
     private bool _isTransitioning = false;
+    private SlideView _currentSlide = SlideView.Hud;
+
+    private List<TodoItem> _todos = new();
+    private string _todoFilter = "All";
+    private TimeSpan _focusRemaining = TimeSpan.FromMinutes(25);
+    private TimeSpan _focusPreset = TimeSpan.FromMinutes(25);
+    private bool _isFocusTimerRunning = false;
+
+    private TextBlock[] _calendarDayLabels = Array.Empty<TextBlock>();
+    private TextBlock[] _calendarNumLabels = Array.Empty<TextBlock>();
+    private Border[] _calendarNumBorders = Array.Empty<Border>();
 
     public IslandState CurrentState { get; private set; } = IslandState.Compact;
     public bool IsAlwaysOnTop => Topmost;
@@ -53,6 +84,20 @@ public partial class IslandWindow : Window
         };
         _clockTimer.Tick += ClockTimer_Tick;
 
+        // Debounced notes save timer
+        _notesSaveTimer = new DispatcherTimer
+        {
+            Interval = TimeSpan.FromMilliseconds(500)
+        };
+        _notesSaveTimer.Tick += NotesSaveTimer_Tick;
+
+        // Focus session timer
+        _focusTimer = new DispatcherTimer
+        {
+            Interval = TimeSpan.FromSeconds(1)
+        };
+        _focusTimer.Tick += FocusTimer_Tick;
+
         AppLogger.Info("IslandWindow initialized.");
     }
 
@@ -71,14 +116,34 @@ public partial class IslandWindow : Window
         _robotController.RegisterCompanion(CompactRobot);
         _robotController.RegisterCompanion(ExpandedRobot);
 
+        // Cache calendar elements
+        _calendarDayLabels = new[] { DayLabel0, DayLabel1, DayLabel2, DayLabel3, DayLabel4, DayLabel5, DayLabel6 };
+        _calendarNumLabels = new[] { DayNum0, DayNum1, DayNum2, DayNum3, DayNum4, DayNum5, DayNum6 };
+        _calendarNumBorders = new[] { DayBorder0, DayBorder1, DayBorder2, DayBorder3, DayBorder4, DayBorder5, DayBorder6 };
+
         // Setup EventEngine subscriptions
         SetupEventSubscriptions();
+
+        // Load persistent data
+        try
+        {
+            NotesTextBox.Text = NotesStorage.LoadNotes();
+            UpdateNotesCounts();
+            _todos = TodoStorage.LoadTodos();
+            RefreshTodosUI();
+        }
+        catch (Exception ex)
+        {
+            AppLogger.Warning($"Failed to load persistent storage: {ex.Message}");
+        }
 
         // Position window top-center
         ResetToTopCenter(animate: false);
 
-        // Start clock timer
+        // Initial updates
         UpdateClock();
+        UpdateCalendar();
+        UpdateSystemMonitor();
         _clockTimer.Start();
 
         // Initialize media session monitoring
@@ -88,6 +153,10 @@ public partial class IslandWindow : Window
             if (_mediaService.CurrentSnapshot.HasActiveSession)
             {
                 UpdateMediaUI(_mediaService.CurrentSnapshot);
+            }
+            else if (_lastMediaSnapshot?.HasActiveSession == true)
+            {
+                UpdateMediaUI(_lastMediaSnapshot);
             }
         }
         catch (Exception ex)
@@ -111,13 +180,27 @@ public partial class IslandWindow : Window
 
     private void SetupEventSubscriptions()
     {
-        // 1. Companion reaction subscriptions
-        _subscriptions.Add(_eventEngine.Subscribe("companion.excited", e => _robotController.TriggerExcitedTestEvent()));
-        _subscriptions.Add(_eventEngine.Subscribe("companion.confused", e => _robotController.TriggerConfusedTestEvent()));
-        _subscriptions.Add(_eventEngine.Subscribe("companion.nod", e => _robotController.TriggerNodTestEvent()));
-        _subscriptions.Add(_eventEngine.Subscribe("user.interaction", e => _robotController.OnUserInteraction()));
+        // 1. Robot expression test events
+        _subscriptions.Add(_eventEngine.Subscribe("test.robot.expression", e =>
+        {
+            if (e.Payload is string expression)
+            {
+                switch (expression.ToLowerInvariant())
+                {
+                    case "excited":
+                        _robotController.TriggerExcitedTestEvent();
+                        break;
+                    case "confused":
+                        _robotController.TriggerConfusedTestEvent();
+                        break;
+                    case "nod":
+                        _robotController.TriggerNodTestEvent();
+                        break;
+                }
+            }
+        }));
 
-        // 2. Island state subscriptions
+        // 2. Island state changes
         _subscriptions.Add(_eventEngine.Subscribe("island.state_changed", e =>
         {
             if (e.Payload is IslandState state)
@@ -176,6 +259,8 @@ public partial class IslandWindow : Window
     private void ClockTimer_Tick(object? sender, EventArgs e)
     {
         UpdateClock();
+        UpdateCalendar();
+        UpdateSystemMonitor();
         _notificationService.PruneExpired();
         UpdateNotificationUI();
     }
@@ -186,6 +271,109 @@ public partial class IslandWindow : Window
         {
             ClockText.Text = DateTime.Now.ToString("HH:mm");
         }
+    }
+
+    private void UpdateCalendar()
+    {
+        var now = DateTime.Now;
+        if (HudMonthText != null)
+        {
+            HudMonthText.Text = now.ToString("MMM");
+        }
+
+        if (HudClockText != null)
+        {
+            HudClockText.Text = now.ToString("HH:mm");
+        }
+
+        // Determine current week's Monday
+        int delta = ((int)now.DayOfWeek - 1 + 7) % 7;
+        var monday = now.Date.AddDays(-delta);
+
+        for (int i = 0; i < 7; i++)
+        {
+            if (i >= _calendarDayLabels.Length || _calendarDayLabels[i] == null) continue;
+
+            var dayDate = monday.AddDays(i);
+            bool isToday = dayDate == now.Date;
+            bool isWeekend = i >= 5;
+
+            var dayLabel = _calendarDayLabels[i];
+            var numLabel = _calendarNumLabels[i];
+            var numBorder = _calendarNumBorders[i];
+
+            if (isToday)
+            {
+                dayLabel.Text = dayDate.ToString("ddd").ToUpperInvariant();
+                dayLabel.FontWeight = FontWeights.Bold;
+                dayLabel.Foreground = new SolidColorBrush(Color.FromRgb(56, 189, 248)); // #38BDF8
+
+                numLabel.Text = dayDate.Day.ToString();
+                numLabel.FontWeight = FontWeights.Bold;
+                numLabel.Foreground = new SolidColorBrush(Color.FromRgb(2, 8, 23));
+
+                numBorder.Background = new SolidColorBrush(Color.FromRgb(56, 189, 248));
+            }
+            else if (isWeekend)
+            {
+                dayLabel.Text = dayDate.ToString("ddd").ToUpperInvariant().Substring(0, 1);
+                dayLabel.FontWeight = FontWeights.Normal;
+                dayLabel.Foreground = new SolidColorBrush(Color.FromRgb(239, 68, 68)); // #EF4444
+
+                numLabel.Text = dayDate.Day.ToString();
+                numLabel.FontWeight = FontWeights.Bold;
+                numLabel.Foreground = new SolidColorBrush(Color.FromRgb(239, 68, 68));
+
+                numBorder.Background = Brushes.Transparent;
+            }
+            else
+            {
+                dayLabel.Text = dayDate.ToString("ddd").ToUpperInvariant().Substring(0, 1);
+                dayLabel.FontWeight = FontWeights.Normal;
+                dayLabel.Foreground = new SolidColorBrush(Color.FromRgb(148, 163, 184));
+
+                numLabel.Text = dayDate.Day.ToString();
+                numLabel.FontWeight = FontWeights.Medium;
+                numLabel.Foreground = new SolidColorBrush(Color.FromRgb(226, 232, 240));
+
+                numBorder.Background = Brushes.Transparent;
+            }
+        }
+    }
+
+    private void UpdateSystemMonitor()
+    {
+        try
+        {
+            var snap = _systemMonitor.GetCurrentSnapshot();
+
+            if (HudCpuPercentText != null) HudCpuPercentText.Text = $"{snap.CpuPercent:0}%";
+            if (HudRamPercentText != null) HudRamPercentText.Text = $"{snap.RamPercent:0}%";
+            if (HudRamUsageText != null) HudRamUsageText.Text = $"{snap.RamUsedGb:0.0}/{snap.RamTotalGb:0}GB";
+            if (HudDiskPercentText != null) HudDiskPercentText.Text = $"{snap.DiskPercent:0}%";
+            if (HudDiskUsageText != null) HudDiskUsageText.Text = $"{snap.DiskUsedGb:0}/{snap.DiskTotalGb:0}GB";
+            if (HudOverallLoadBadge != null) HudOverallLoadBadge.Text = $"{snap.CpuPercent:0}%";
+
+            AnimateBarWidth(HudCpuBar, snap.CpuPercent, 80.0);
+            AnimateBarWidth(HudRamBar, snap.RamPercent, 80.0);
+            AnimateBarWidth(HudDiskBar, snap.DiskPercent, 80.0);
+        }
+        catch (Exception ex)
+        {
+            AppLogger.Warning($"Error updating system monitor UI: {ex.Message}");
+        }
+    }
+
+    private void AnimateBarWidth(Border? bar, double percent, double maxBarWidth)
+    {
+        if (bar == null) return;
+        double targetWidth = Math.Clamp(percent / 100.0 * maxBarWidth, 2.0, maxBarWidth);
+        double currentWidth = bar.Width > 0 ? bar.Width : targetWidth;
+        var anim = new DoubleAnimation(currentWidth, targetWidth, TimeSpan.FromMilliseconds(350))
+        {
+            EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+        };
+        bar.BeginAnimation(WidthProperty, anim);
     }
 
     private void Window_MouseMove(object sender, MouseEventArgs e)
@@ -202,7 +390,6 @@ public partial class IslandWindow : Window
         _isTransitioning = true;
         CurrentState = targetState;
 
-        // Publish state change event through the Core Event Engine
         _eventEngine.Publish(NovaEvent.CreateSystemEvent("island.state_changed", $"Island state changed to {targetState}", targetState, EventPriority.Normal));
 
         var duration = TimeSpan.FromMilliseconds(IslandDimensions.AnimationDurationMs);
@@ -242,14 +429,30 @@ public partial class IslandWindow : Window
                 ExpandedPanel.Visibility = Visibility.Collapsed;
                 CompactPanel.Visibility = Visibility.Visible;
                 CompactPanel.BeginAnimation(OpacityProperty, new DoubleAnimation(0.0, 1.0, TimeSpan.FromMilliseconds(160)));
+
+                Width = IslandDimensions.CompactWindowWidth;
+                Height = IslandDimensions.CompactWindowHeight;
+                if (!_isManuallyPositioned)
+                {
+                    var workArea = ScreenHelper.GetWorkingArea(this);
+                    Left = workArea.Left + (workArea.Width - Width) / 2.0;
+                }
             };
             ExpandedPanel.BeginAnimation(OpacityProperty, fadeExpanded);
         }
         else // Expanded
         {
             targetPillWidth = IslandDimensions.ExpandedWidth;
-            targetPillHeight = IslandDimensions.ExpandedHeight;
+            targetPillHeight = _currentSlide == SlideView.Hud ? IslandDimensions.ExpandedHeight : IslandDimensions.ExpandedWorkspaceHeight;
             targetCornerRadius = IslandDimensions.ExpandedCornerRadius;
+
+            Width = IslandDimensions.ExpandedWindowWidth;
+            Height = IslandDimensions.ExpandedWindowHeight;
+            if (!_isManuallyPositioned)
+            {
+                var workArea = ScreenHelper.GetWorkingArea(this);
+                Left = workArea.Left + (workArea.Width - Width) / 2.0;
+            }
 
             var fadeCompact = new DoubleAnimation(1.0, 0.0, TimeSpan.FromMilliseconds(120));
             fadeCompact.Completed += (s, e) =>
@@ -335,7 +538,6 @@ public partial class IslandWindow : Window
 
     private void Pill_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
-        // Publish user interaction event to the Core Event Engine
         _eventEngine.Publish(NovaEvent.Create("user.interaction", "Nova.UI", "User Clicked Island", category: EventCategory.UserAction));
 
         if (e.ClickCount == 2)
@@ -412,79 +614,429 @@ public partial class IslandWindow : Window
         Top = clamped.Y;
     }
 
+    // SLIDE SWITCHING LOGIC WITH SMOOTH MOTIONS
+    private void TabBtnHud_Click(object sender, RoutedEventArgs e) => SwitchToSlide(SlideView.Hud);
+    private void TabBtnNotes_Click(object sender, RoutedEventArgs e) => SwitchToSlide(SlideView.Notes);
+    private void TabBtnTodos_Click(object sender, RoutedEventArgs e) => SwitchToSlide(SlideView.Todos);
+    private void TabBtnTools_Click(object sender, RoutedEventArgs e) => SwitchToSlide(SlideView.Tools);
+    private void TabBtnMascot_Click(object sender, RoutedEventArgs e) => SwitchToSlide(SlideView.Mascot);
+
+    public void NavigateToSlide(string slideName)
+    {
+        switch (slideName.ToLowerInvariant())
+        {
+            case "notes":
+                SwitchToSlide(SlideView.Notes);
+                break;
+            case "todos":
+            case "tasks":
+                SwitchToSlide(SlideView.Todos);
+                break;
+            case "tools":
+                SwitchToSlide(SlideView.Tools);
+                break;
+            case "mascot":
+                SwitchToSlide(SlideView.Mascot);
+                break;
+            default:
+                SwitchToSlide(SlideView.Hud);
+                break;
+        }
+    }
+
+    private void SwitchToSlide(SlideView targetSlide)
+    {
+        _currentSlide = targetSlide;
+        UpdateTabButtons(targetSlide);
+
+        double targetHeight = targetSlide == SlideView.Hud ? IslandDimensions.ExpandedHeight : IslandDimensions.ExpandedWorkspaceHeight;
+        var animHeight = new DoubleAnimation(PillBorder.ActualHeight, targetHeight, TimeSpan.FromMilliseconds(240))
+        {
+            EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+        };
+        PillBorder.BeginAnimation(HeightProperty, animHeight);
+
+        switch (targetSlide)
+        {
+            case SlideView.Hud:
+                TransitionSlide(SlideHudPanel, SlideHudTransform);
+                break;
+            case SlideView.Notes:
+                TransitionSlide(SlideNotesPanel, SlideNotesTransform);
+                break;
+            case SlideView.Todos:
+                TransitionSlide(SlideTodosPanel, SlideTodosTransform);
+                break;
+            case SlideView.Tools:
+                TransitionSlide(SlideToolsPanel, SlideToolsTransform);
+                break;
+            case SlideView.Mascot:
+                TransitionSlide(SlideMascotPanel, SlideMascotTransform);
+                break;
+        }
+    }
+
+    private void UpdateTabButtons(SlideView active)
+    {
+        SetTabActive(TabBtnHud, active == SlideView.Hud);
+        SetTabActive(TabBtnNotes, active == SlideView.Notes);
+        SetTabActive(TabBtnTodos, active == SlideView.Todos);
+        SetTabActive(TabBtnTools, active == SlideView.Tools);
+        SetTabActive(TabBtnMascot, active == SlideView.Mascot);
+    }
+
+    private void SetTabActive(Button? btn, bool isActive)
+    {
+        if (btn == null) return;
+        if (isActive)
+        {
+            btn.Background = new SolidColorBrush(Color.FromRgb(2, 132, 199)); // #0284C7
+            btn.Foreground = Brushes.White;
+            btn.BorderBrush = new SolidColorBrush(Color.FromRgb(56, 189, 248)); // #38BDF8
+        }
+        else
+        {
+            btn.Background = new SolidColorBrush(Color.FromRgb(17, 22, 36));
+            btn.Foreground = new SolidColorBrush(Color.FromRgb(148, 163, 184));
+            btn.BorderBrush = new SolidColorBrush(Color.FromRgb(30, 41, 59));
+        }
+    }
+
+    private void TransitionSlide(FrameworkElement targetPanel, TranslateTransform? targetTransform)
+    {
+        SlideHudPanel.Visibility = Visibility.Collapsed;
+        SlideNotesPanel.Visibility = Visibility.Collapsed;
+        SlideTodosPanel.Visibility = Visibility.Collapsed;
+        SlideToolsPanel.Visibility = Visibility.Collapsed;
+        SlideMascotPanel.Visibility = Visibility.Collapsed;
+
+        targetPanel.Visibility = Visibility.Visible;
+        var duration = TimeSpan.FromMilliseconds(200);
+        var ease = new CubicEase { EasingMode = EasingMode.EaseOut };
+
+        targetPanel.BeginAnimation(OpacityProperty, new DoubleAnimation(0.0, 1.0, duration) { EasingFunction = ease });
+
+        if (targetTransform != null)
+        {
+            targetTransform.BeginAnimation(TranslateTransform.XProperty, new DoubleAnimation(24.0, 0.0, duration) { EasingFunction = ease });
+        }
+    }
+
+    private void HandleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (_currentSlide == SlideView.Hud)
+        {
+            SwitchToSlide(SlideView.Notes);
+        }
+        else
+        {
+            SwitchToSlide(SlideView.Hud);
+        }
+        e.Handled = true;
+    }
+
+    private void VolumePill_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (HudVolumeLevelText != null && HudVolumePill != null)
+        {
+            if (HudVolumeLevelText.Text == "100")
+            {
+                HudVolumeLevelText.Text = "MUTE";
+                HudVolumeLevelText.Foreground = new SolidColorBrush(Color.FromRgb(239, 68, 68));
+                HudVolumePill.Opacity = 0.35;
+            }
+            else
+            {
+                HudVolumeLevelText.Text = "100";
+                HudVolumeLevelText.Foreground = new SolidColorBrush(Color.FromRgb(226, 232, 240));
+                HudVolumePill.Opacity = 1.0;
+            }
+        }
+        e.Handled = true;
+    }
+
+    // QUICK NOTES LOGIC
+    private void NotesTextBox_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        UpdateNotesCounts();
+        _notesSaveTimer.Stop();
+        _notesSaveTimer.Start();
+    }
+
+    private void NotesSaveTimer_Tick(object? sender, EventArgs e)
+    {
+        _notesSaveTimer.Stop();
+        NotesStorage.SaveNotes(NotesTextBox.Text);
+    }
+
+    private void UpdateNotesCounts()
+    {
+        if (NotesCharCountText != null && NotesWordCountText != null && NotesTextBox != null)
+        {
+            var text = NotesTextBox.Text;
+            NotesCharCountText.Text = $"{text.Length} chars";
+            var words = string.IsNullOrWhiteSpace(text) ? 0 : text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries).Length;
+            NotesWordCountText.Text = $"{words} words";
+        }
+    }
+
+    private async void NotesCopy_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            Clipboard.SetText(NotesTextBox.Text);
+            if (NotesCopyFeedbackText != null)
+            {
+                NotesCopyFeedbackText.Text = "✓ Copied to clipboard!";
+                await Task.Delay(2000);
+                NotesCopyFeedbackText.Text = "";
+            }
+        }
+        catch (Exception ex)
+        {
+            AppLogger.Warning($"Clipboard copy failed: {ex.Message}");
+        }
+    }
+
+    private void NotesClear_Click(object sender, RoutedEventArgs e)
+    {
+        NotesTextBox.Text = string.Empty;
+        NotesStorage.SaveNotes(string.Empty);
+    }
+
+    // TO-DO LIST LOGIC
+    private void TodoAdd_Click(object sender, RoutedEventArgs e)
+    {
+        var text = TodoInputBox.Text?.Trim();
+        if (!string.IsNullOrWhiteSpace(text))
+        {
+            _todos.Add(new TodoItem { Title = text, IsCompleted = false });
+            TodoInputBox.Text = string.Empty;
+            TodoStorage.SaveTodos(_todos);
+            RefreshTodosUI();
+        }
+    }
+
+    private void TodoInputBox_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter)
+        {
+            TodoAdd_Click(sender, e);
+        }
+    }
+
+    private void TodoFilterAll_Click(object sender, RoutedEventArgs e)
+    {
+        _todoFilter = "All";
+        RefreshTodosUI();
+    }
+
+    private void TodoFilterActive_Click(object sender, RoutedEventArgs e)
+    {
+        _todoFilter = "Active";
+        RefreshTodosUI();
+    }
+
+    private void TodoFilterDone_Click(object sender, RoutedEventArgs e)
+    {
+        _todoFilter = "Done";
+        RefreshTodosUI();
+    }
+
+    private void TodoClearCompleted_Click(object sender, RoutedEventArgs e)
+    {
+        _todos.RemoveAll(t => t.IsCompleted);
+        TodoStorage.SaveTodos(_todos);
+        RefreshTodosUI();
+    }
+
+    private void RefreshTodosUI()
+    {
+        if (TodoItemsContainer == null) return;
+        TodoItemsContainer.Children.Clear();
+
+        var filtered = _todoFilter switch
+        {
+            "Active" => _todos.Where(t => !t.IsCompleted).ToList(),
+            "Done" => _todos.Where(t => t.IsCompleted).ToList(),
+            _ => _todos.ToList()
+        };
+
+        int activeCount = _todos.Count(t => !t.IsCompleted);
+        if (TodoCountText != null)
+        {
+            TodoCountText.Text = $"{activeCount} active task{(activeCount == 1 ? "" : "s")}";
+        }
+
+        foreach (var item in filtered)
+        {
+            var row = new Grid { Margin = new Thickness(0, 3, 0, 3) };
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+            var chk = new CheckBox
+            {
+                IsChecked = item.IsCompleted,
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(0, 0, 8, 0)
+            };
+            chk.Click += (s, e) =>
+            {
+                item.IsCompleted = chk.IsChecked == true;
+                TodoStorage.SaveTodos(_todos);
+                RefreshTodosUI();
+            };
+
+            var tb = new TextBlock
+            {
+                Text = item.Title,
+                FontSize = 10.5,
+                Foreground = item.IsCompleted ? new SolidColorBrush(Color.FromRgb(100, 116, 139)) : new SolidColorBrush(Color.FromRgb(241, 245, 249)),
+                TextDecorations = item.IsCompleted ? TextDecorations.Strikethrough : null,
+                TextTrimming = TextTrimming.CharacterEllipsis,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+
+            var delBtn = new Button
+            {
+                Content = "✕",
+                FontSize = 8.5,
+                Width = 18,
+                Height = 18,
+                Padding = new Thickness(0),
+                Cursor = Cursors.Hand,
+                Background = Brushes.Transparent,
+                Foreground = new SolidColorBrush(Color.FromRgb(148, 163, 184)),
+                BorderThickness = new Thickness(0)
+            };
+            delBtn.Click += (s, e) =>
+            {
+                _todos.Remove(item);
+                TodoStorage.SaveTodos(_todos);
+                RefreshTodosUI();
+            };
+
+            Grid.SetColumn(chk, 0);
+            Grid.SetColumn(tb, 1);
+            Grid.SetColumn(delBtn, 2);
+
+            row.Children.Add(chk);
+            row.Children.Add(tb);
+            row.Children.Add(delBtn);
+
+            TodoItemsContainer.Children.Add(row);
+        }
+    }
+
+    // FOCUS TIMER LOGIC
+    private void FocusTimer_Tick(object? sender, EventArgs e)
+    {
+        if (_focusRemaining > TimeSpan.Zero)
+        {
+            _focusRemaining = _focusRemaining.Subtract(TimeSpan.FromSeconds(1));
+            UpdateTimerDisplay();
+        }
+        else
+        {
+            _focusTimer.Stop();
+            _isFocusTimerRunning = false;
+            TimerStartPauseBtn.Content = "▶ Start";
+            _robotController.TriggerNodTestEvent();
+            _eventEngine.Publish(NovaEvent.Create("system.focus_completed", "FocusTimer", "Focus Session Completed!", category: EventCategory.System));
+        }
+    }
+
+    private void UpdateTimerDisplay()
+    {
+        if (TimerDisplayText != null)
+        {
+            TimerDisplayText.Text = $"{_focusRemaining:mm\\:ss}";
+        }
+    }
+
+    private void TimerStartPause_Click(object sender, RoutedEventArgs e)
+    {
+        if (_isFocusTimerRunning)
+        {
+            _focusTimer.Stop();
+            _isFocusTimerRunning = false;
+            TimerStartPauseBtn.Content = "▶ Start";
+        }
+        else
+        {
+            _focusTimer.Start();
+            _isFocusTimerRunning = true;
+            TimerStartPauseBtn.Content = "⏸ Pause";
+        }
+    }
+
+    private void TimerReset_Click(object sender, RoutedEventArgs e)
+    {
+        _focusTimer.Stop();
+        _isFocusTimerRunning = false;
+        _focusRemaining = _focusPreset;
+        TimerStartPauseBtn.Content = "▶ Start";
+        UpdateTimerDisplay();
+    }
+
+    private void TimerPreset25_Click(object sender, RoutedEventArgs e) => SetTimerPreset(TimeSpan.FromMinutes(25));
+    private void TimerPreset5_Click(object sender, RoutedEventArgs e) => SetTimerPreset(TimeSpan.FromMinutes(5));
+    private void TimerPreset15_Click(object sender, RoutedEventArgs e) => SetTimerPreset(TimeSpan.FromMinutes(15));
+
+    private void SetTimerPreset(TimeSpan preset)
+    {
+        _focusPreset = preset;
+        TimerReset_Click(this, new RoutedEventArgs());
+    }
+
+    // QUICK LAUNCHERS
+    private void LaunchCalc_Click(object sender, RoutedEventArgs e) => SafeLaunchApp("calc.exe");
+    private void LaunchNotepad_Click(object sender, RoutedEventArgs e) => SafeLaunchApp("notepad.exe");
+    private void LaunchSnip_Click(object sender, RoutedEventArgs e) => SafeLaunchApp("snippingtool.exe");
+    private void LaunchTaskMgr_Click(object sender, RoutedEventArgs e) => SafeLaunchApp("taskmgr.exe");
+
+    private void SafeLaunchApp(string exe)
+    {
+        try
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(exe) { UseShellExecute = true });
+        }
+        catch (Exception ex)
+        {
+            AppLogger.Warning($"Failed to launch {exe}: {ex.Message}");
+        }
+    }
+
     // UI Click Handlers
     private void ExpandButton_Click(object sender, RoutedEventArgs e) => TransitionTo(IslandState.Expanded);
     private void CompactButton_Click(object sender, RoutedEventArgs e) => TransitionTo(IslandState.Compact);
     private void HideButton_Click(object sender, RoutedEventArgs e) => TransitionTo(IslandState.Hidden);
     private void PinButton_Click(object sender, RoutedEventArgs e) => ToggleAlwaysOnTop();
 
-    // Robot Interactive Test Buttons - Publish via EventEngine
-    private void BtnExcited_Click(object sender, RoutedEventArgs e)
-    {
-        _eventEngine.Publish(NovaEvent.CreateCompanionEvent("companion.excited", "Companion Excited", "Triggered from UI test button", EventPriority.High));
-    }
-
-    private void BtnConfused_Click(object sender, RoutedEventArgs e)
-    {
-        _eventEngine.Publish(NovaEvent.CreateCompanionEvent("companion.confused", "Companion Confused", "Triggered from UI test button", EventPriority.Normal));
-    }
-
-    private void BtnNod_Click(object sender, RoutedEventArgs e)
-    {
-        _eventEngine.Publish(NovaEvent.CreateCompanionEvent("companion.nod", "Companion Nod", "Triggered from UI test button", EventPriority.Low));
-    }
-
-    // Context Menu Handlers
     private void MenuExpand_Click(object sender, RoutedEventArgs e) => TransitionTo(IslandState.Expanded);
     private void MenuCompact_Click(object sender, RoutedEventArgs e) => TransitionTo(IslandState.Compact);
     private void MenuResetPosition_Click(object sender, RoutedEventArgs e) => ResetToTopCenter(animate: true);
     private void MenuAlwaysOnTop_Click(object sender, RoutedEventArgs e) => ToggleAlwaysOnTop();
     private void MenuHide_Click(object sender, RoutedEventArgs e) => TransitionTo(IslandState.Hidden);
-    private void MenuExit_Click(object sender, RoutedEventArgs e)
-    {
-        AppLogger.Info("Exit requested by user via context menu.");
-        Close();
-    }
+    private void MenuExit_Click(object sender, RoutedEventArgs e) => Application.Current.Shutdown();
 
-    // Robot Context Menu Handlers - Publish via EventEngine
-    private void MenuTestExcited_Click(object sender, RoutedEventArgs e)
-    {
-        _eventEngine.Publish(NovaEvent.CreateCompanionEvent("companion.excited", "Companion Excited", "Triggered from Context Menu", EventPriority.High));
-    }
+    private void MenuTestExcited_Click(object sender, RoutedEventArgs e) => _eventEngine.Publish(NovaEvent.Create("test.robot.expression", "Menu", "excited"));
+    private void MenuTestConfused_Click(object sender, RoutedEventArgs e) => _eventEngine.Publish(NovaEvent.Create("test.robot.expression", "Menu", "confused"));
+    private void MenuTestNod_Click(object sender, RoutedEventArgs e) => _eventEngine.Publish(NovaEvent.Create("test.robot.expression", "Menu", "nod"));
 
-    private void MenuTestConfused_Click(object sender, RoutedEventArgs e)
-    {
-        _eventEngine.Publish(NovaEvent.CreateCompanionEvent("companion.confused", "Companion Confused", "Triggered from Context Menu", EventPriority.Normal));
-    }
+    private void BtnExcited_Click(object sender, RoutedEventArgs e) => _eventEngine.Publish(NovaEvent.Create("test.robot.expression", "UI", "excited"));
+    private void BtnConfused_Click(object sender, RoutedEventArgs e) => _eventEngine.Publish(NovaEvent.Create("test.robot.expression", "UI", "confused"));
+    private void BtnNod_Click(object sender, RoutedEventArgs e) => _eventEngine.Publish(NovaEvent.Create("test.robot.expression", "UI", "nod"));
 
-    private void MenuTestNod_Click(object sender, RoutedEventArgs e)
-    {
-        _eventEngine.Publish(NovaEvent.CreateCompanionEvent("companion.nod", "Companion Nod", "Triggered from Context Menu", EventPriority.Low));
-    }
-
-    private void MenuPersonalityCalm_Click(object sender, RoutedEventArgs e)
-    {
-        _robotController.SetPersonality(RobotPersonality.Calm);
-        RobotStatusText.Text = "COMPANION • CALM";
-    }
-
-    private void MenuPersonalityPlayful_Click(object sender, RoutedEventArgs e)
-    {
-        _robotController.SetPersonality(RobotPersonality.Playful);
-        RobotStatusText.Text = "COMPANION • PLAYFUL";
-    }
-
-    private void MenuPersonalityMinimal_Click(object sender, RoutedEventArgs e)
-    {
-        _robotController.SetPersonality(RobotPersonality.Minimal);
-        RobotStatusText.Text = "COMPANION • MINIMAL";
-    }
+    private void MenuPersonalityCalm_Click(object sender, RoutedEventArgs e) => _robotController.SetPersonality(RobotPersonality.Calm);
+    private void MenuPersonalityPlayful_Click(object sender, RoutedEventArgs e) => _robotController.SetPersonality(RobotPersonality.Playful);
+    private void MenuPersonalityMinimal_Click(object sender, RoutedEventArgs e) => _robotController.SetPersonality(RobotPersonality.Minimal);
 
     private void MenuBatterySaver_Click(object sender, RoutedEventArgs e)
     {
         var item = (MenuItem)sender;
         _robotController.SetBatterySaver(item.IsChecked);
-        RobotStatusText.Text = item.IsChecked ? "COMPANION • BATTERY SAVER" : "COMPANION • ACTIVE";
     }
 
     private void MenuReducedMotion_Click(object sender, RoutedEventArgs e)
@@ -511,12 +1063,12 @@ public partial class IslandWindow : Window
                 {
                     CompactMediaVisualizer.Visibility = snapshot.IsPlaying ? Visibility.Visible : Visibility.Collapsed;
                     CompactMediaVisualizer.Foreground = snapshot.IsYouTubeMusic
-                        ? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 68, 68))
-                        : new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0, 242, 254));
+                        ? new SolidColorBrush(Color.FromRgb(255, 68, 68))
+                        : new SolidColorBrush(Color.FromRgb(56, 189, 248));
                 }
             }
 
-            // Expanded View
+            // Expanded View (HUD Bar)
             if (MediaTitleText != null)
             {
                 MediaTitleText.Text = !string.IsNullOrWhiteSpace(snapshot.TrackInfo.Title) 
@@ -542,15 +1094,15 @@ public partial class IslandWindow : Window
                 {
                     MediaBadgeText.Text = $"YOUTUBE MUSIC • {snapshot.PlaybackStatus.ToString().ToUpperInvariant()}";
                     MediaBadgeText.Foreground = snapshot.IsPlaying 
-                        ? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 68, 68)) 
-                        : new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(148, 163, 184));
+                        ? new SolidColorBrush(Color.FromRgb(255, 68, 68)) 
+                        : new SolidColorBrush(Color.FromRgb(148, 163, 184));
                 }
                 else
                 {
                     MediaBadgeText.Text = $"{snapshot.SourceDisplayName.ToUpperInvariant()} • {snapshot.PlaybackStatus.ToString().ToUpperInvariant()}";
                     MediaBadgeText.Foreground = snapshot.IsPlaying 
-                        ? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0, 242, 254)) 
-                        : new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(148, 163, 184));
+                        ? new SolidColorBrush(Color.FromRgb(56, 189, 248)) 
+                        : new SolidColorBrush(Color.FromRgb(148, 163, 184));
                 }
             }
 
@@ -558,8 +1110,8 @@ public partial class IslandWindow : Window
             {
                 MediaVisualizerText.Visibility = snapshot.IsPlaying ? Visibility.Visible : Visibility.Collapsed;
                 MediaVisualizerText.Foreground = snapshot.IsYouTubeMusic
-                    ? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 68, 68))
-                    : new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0, 242, 254));
+                    ? new SolidColorBrush(Color.FromRgb(255, 68, 68))
+                    : new SolidColorBrush(Color.FromRgb(56, 189, 248));
             }
 
             // Artwork
@@ -573,25 +1125,33 @@ public partial class IslandWindow : Window
                         MediaArtworkImage.Source = bitmap;
                         MediaArtworkImage.Visibility = Visibility.Visible;
                         MediaPlaceholderIcon.Visibility = Visibility.Collapsed;
+                        if (HudAlbumColorBack != null) HudAlbumColorBack.Visibility = Visibility.Collapsed;
                     }
                     else
                     {
                         MediaArtworkImage.Visibility = Visibility.Collapsed;
                         MediaPlaceholderIcon.Visibility = Visibility.Visible;
+                        if (HudAlbumColorBack != null) HudAlbumColorBack.Visibility = Visibility.Visible;
                     }
                 }
                 else
                 {
                     MediaArtworkImage.Visibility = Visibility.Collapsed;
                     MediaPlaceholderIcon.Visibility = Visibility.Visible;
+                    if (HudAlbumColorBack != null) HudAlbumColorBack.Visibility = Visibility.Visible;
                 }
             }
 
-            // Controls
+            // Transport Buttons
             if (MediaPlayPauseBtn != null)
             {
-                MediaPlayPauseBtn.Content = snapshot.IsPlaying ? "⏸" : "▶";
                 MediaPlayPauseBtn.IsEnabled = snapshot.Capabilities.CanTogglePlayPause || snapshot.Capabilities.CanPlay || snapshot.Capabilities.CanPause;
+                MediaPlayPauseBtn.Content = snapshot.IsPlaying ? "⏸" : "▶";
+            }
+
+            if (MediaNextBtn != null)
+            {
+                MediaNextBtn.IsEnabled = snapshot.Capabilities.CanNext;
             }
 
             if (MediaPrevBtn != null)
@@ -599,115 +1159,69 @@ public partial class IslandWindow : Window
                 MediaPrevBtn.IsEnabled = snapshot.Capabilities.CanPrevious;
             }
 
-            if (MediaNextBtn != null)
+            if (HudProgressBar != null)
             {
-                MediaNextBtn.IsEnabled = snapshot.Capabilities.CanNext;
+                HudProgressBar.Width = snapshot.IsPlaying ? 55 : 20;
             }
         }
         else
         {
-            // Inactive / No media session
+            // Compact View - Revert to default
             if (CompactMediaPanel != null && CompactDefaultPanel != null)
             {
                 CompactMediaPanel.Visibility = Visibility.Collapsed;
                 CompactDefaultPanel.Visibility = Visibility.Visible;
             }
 
-            if (CompactMediaVisualizer != null)
-                CompactMediaVisualizer.Visibility = Visibility.Collapsed;
-            if (MediaVisualizerText != null)
-                MediaVisualizerText.Visibility = Visibility.Collapsed;
-
+            // Expanded View - Revert to Standby
             if (MediaTitleText != null)
+            {
                 MediaTitleText.Text = "No Media Playing";
+            }
+
             if (MediaArtistText != null)
+            {
                 MediaArtistText.Text = "Awaiting audio session";
+            }
+
             if (MediaBadgeText != null)
             {
                 MediaBadgeText.Text = "MEDIA • STANDBY";
-                MediaBadgeText.Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(100, 116, 139));
+                MediaBadgeText.Foreground = new SolidColorBrush(Color.FromRgb(16, 185, 129));
+            }
+
+            if (MediaVisualizerText != null)
+            {
+                MediaVisualizerText.Visibility = Visibility.Collapsed;
             }
 
             if (MediaArtworkImage != null && MediaPlaceholderIcon != null)
             {
-                MediaArtworkImage.Source = null;
                 MediaArtworkImage.Visibility = Visibility.Collapsed;
                 MediaPlaceholderIcon.Visibility = Visibility.Visible;
+                if (HudAlbumColorBack != null) HudAlbumColorBack.Visibility = Visibility.Visible;
             }
 
             if (MediaPlayPauseBtn != null)
             {
-                MediaPlayPauseBtn.Content = "▶";
                 MediaPlayPauseBtn.IsEnabled = false;
+                MediaPlayPauseBtn.Content = "▶";
             }
-            if (MediaPrevBtn != null)
-                MediaPrevBtn.IsEnabled = false;
+
             if (MediaNextBtn != null)
-                MediaNextBtn.IsEnabled = false;
-        }
-    }
-
-    private void OpenYouTubeMusic_Click(object sender, RoutedEventArgs e)
-    {
-        OpenYouTubeMusicUrl();
-    }
-
-    private void MenuOpenYouTubeMusic_Click(object sender, RoutedEventArgs e)
-    {
-        OpenYouTubeMusicUrl();
-    }
-
-    private void OpenYouTubeMusicUrl()
-    {
-        try
-        {
-            AppLogger.Info("Opening YouTube Music (https://music.youtube.com/) in default browser...");
-            var psi = new System.Diagnostics.ProcessStartInfo
             {
-                FileName = "https://music.youtube.com/",
-                UseShellExecute = true
-            };
-            System.Diagnostics.Process.Start(psi);
-        }
-        catch (Exception ex)
-        {
-            AppLogger.Warning($"Could not launch YouTube Music: {ex.Message}");
-        }
-    }
+                MediaNextBtn.IsEnabled = false;
+            }
 
-    private async void MediaPlayPause_Click(object sender, RoutedEventArgs e)
-    {
-        try
-        {
-            await _mediaService.TryTogglePlayPauseAsync();
-        }
-        catch (Exception ex)
-        {
-            AppLogger.Warning($"MediaPlayPause_Click failed: {ex.Message}");
-        }
-    }
+            if (MediaPrevBtn != null)
+            {
+                MediaPrevBtn.IsEnabled = false;
+            }
 
-    private async void MediaPrev_Click(object sender, RoutedEventArgs e)
-    {
-        try
-        {
-            await _mediaService.TryPreviousAsync();
-        }
-        catch (Exception ex)
-        {
-            AppLogger.Warning($"MediaPrev_Click failed: {ex.Message}");
-        }
-    }
-
-    private async void MediaNext_Click(object sender, RoutedEventArgs e)
-    {
-        try
-        {
-            await _mediaService.TryNextAsync();
-        }
-        catch (Exception ex)
-        {
-            AppLogger.Warning($"MediaNext_Click failed: {ex.Message}");
+            if (HudProgressBar != null)
+            {
+                HudProgressBar.Width = 0;
+            }
         }
     }
 
@@ -780,6 +1294,66 @@ public partial class IslandWindow : Window
         }
     }
 
+    private async void MediaPlayPause_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            await _mediaService.TryTogglePlayPauseAsync();
+            _robotController.TriggerNodTestEvent();
+        }
+        catch (Exception ex)
+        {
+            AppLogger.Warning($"Play/Pause click failed: {ex.Message}");
+        }
+    }
+
+    private async void MediaNext_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            await _mediaService.TryNextAsync();
+            _robotController.TriggerNodTestEvent();
+        }
+        catch (Exception ex)
+        {
+            AppLogger.Warning($"Next Track click failed: {ex.Message}");
+        }
+    }
+
+    private async void MediaPrev_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            await _mediaService.TryPreviousAsync();
+            _robotController.TriggerNodTestEvent();
+        }
+        catch (Exception ex)
+        {
+            AppLogger.Warning($"Previous Track click failed: {ex.Message}");
+        }
+    }
+
+    private void OpenYouTubeMusic_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("https://music.youtube.com/")
+            {
+                UseShellExecute = true
+            });
+            AppLogger.Info("Opened https://music.youtube.com/ via user request.");
+        }
+        catch (Exception ex)
+        {
+            AppLogger.Warning($"Failed to open YouTube Music in browser: {ex.Message}");
+        }
+    }
+
+    private void MenuOpenYouTubeMusic_Click(object sender, RoutedEventArgs e)
+    {
+        OpenYouTubeMusic_Click(sender, e);
+    }
+
     private async void DismissCurrentNotification_Click(object sender, RoutedEventArgs e)
     {
         try
@@ -793,7 +1367,7 @@ public partial class IslandWindow : Window
         }
         catch (Exception ex)
         {
-            AppLogger.Warning($"DismissCurrentNotification_Click failed: {ex.Message}");
+            AppLogger.Warning($"Failed to dismiss current notification: {ex.Message}");
         }
     }
 
@@ -806,25 +1380,33 @@ public partial class IslandWindow : Window
         }
         catch (Exception ex)
         {
-            AppLogger.Warning($"ClearAllNotifications_Click failed: {ex.Message}");
+            AppLogger.Warning($"Failed to clear all notifications: {ex.Message}");
         }
     }
 
-    private void Window_Closed(object sender, EventArgs e)
+    private void BtnSettings_Click(object sender, RoutedEventArgs e)
+    {
+        var contextMenu = (ContextMenu)Resources["IslandContextMenu"];
+        contextMenu.IsOpen = true;
+    }
+
+    private void Window_Closed(object? sender, EventArgs e)
     {
         _clockTimer.Stop();
-        _trayManager.Dispose();
-        _mediaService.Dispose();
-        _notificationService.Dispose();
+        _notesSaveTimer.Stop();
+        _focusTimer.Stop();
 
-        // Dispose all subscriptions and the engine
         foreach (var sub in _subscriptions)
         {
             sub.Dispose();
         }
         _subscriptions.Clear();
+
+        _mediaService.Dispose();
+        _notificationService.Dispose();
+        _trayManager.Dispose();
         _eventEngine.Dispose();
 
-        AppLogger.Info("IslandWindow closed and EventEngine disposed.");
+        AppLogger.Info("IslandWindow closed and all resources cleanly disposed.");
     }
 }

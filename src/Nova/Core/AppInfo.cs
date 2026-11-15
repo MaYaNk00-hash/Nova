@@ -27,4 +27,13 @@ public static class AppInfo
 
     public static string LogFilePath =>
         Path.Combine(LogDirectory, "nova.log");
+
+    public static string StorageDirectory =>
+        Path.Combine(AppDataDirectory, "Storage");
+
+    public static string NotesFilePath =>
+        Path.Combine(StorageDirectory, "quick_notes.txt");
+
+    public static string TodoFilePath =>
+        Path.Combine(StorageDirectory, "todos.json");
 }

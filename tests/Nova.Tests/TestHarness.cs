@@ -42,6 +42,12 @@ public static class Assert
             throw new InvalidOperationException(message ?? $"Assert.Contains failed: Expected substring '{expectedSubstring}' not found in '{actualString}'.");
     }
 
+    public static void Contains<T>(IEnumerable<T> collection, Func<T, bool> predicate, string? message = null)
+    {
+        if (collection == null || !collection.Any(predicate))
+            throw new InvalidOperationException(message ?? "Assert.Contains failed: No element matched the predicate.");
+    }
+
     public static void Throws<TException>(Action action, string? message = null) where TException : Exception
     {
         try

@@ -88,6 +88,26 @@ dotnet run --project src/Nova/Nova.csproj -- --smoke-test
 
 ---
 
+## Panoramic Top HUD Bar & Slide Workspaces
+
+- **Panoramic Top HUD Mode**:
+  - Reshaped top-anchored HUD bar (920px wide) featuring a 3-module dashboard:
+    - **Media Player**: Album artwork, track title, artist, transport pills (`⏮ ▶ ⏭`), seek timeline (`00:41 ———— 03:04`), and YouTube Music integration.
+    - **Date & Live Calendar**: Large month, 7-day live calendar strip with highlighted current day pill and red weekend indicators, and digital clock (`16:34`).
+    - **System Monitor & Hardware HUD**: Real-time CPU, RAM, and DISK animated progress bars with live GB metrics, plus vertical volume capsule control.
+- **Slide Modules**:
+  - `📊 HUD`: Panoramic system and media overview.
+  - `📝 Quick Notes`: Local-first scratchpad editor with auto-save, char/word counters, and one-click clipboard copy.
+  - `✅ Tasks / To-Do List`: Checkable tasks with strikethrough, inline task creation, filters (`All`, `Active`, `Done`), and local persistence.
+  - `⚡ Quick Tools`: Focus / Pomodoro timer (`25:00`) with presets + one-click desktop app launchers (Calculator, Notepad, Snipping Tool, Task Manager).
+  - `🤖 Mascot Companion`: Interactive robotic companion with expressions (`Happy`, `Confused`, `Nod`) and bus telemetry.
+- **Fluid Motions & Animations**:
+  - Smooth morphing between compact pill (210x42) and panoramic HUD (920x118).
+  - Smooth horizontal sliding card transitions (220ms slide-and-fade) between workspace views.
+  - Fluid hardware stat bar glides with easing.
+
+---
+
 ## Logs and Storage
 
 Application logs are stored locally at:

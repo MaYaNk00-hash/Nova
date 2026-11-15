@@ -76,6 +76,24 @@ public partial class App : Application
             });
         }
 
+        if (e.Args.Contains("--demo-hud"))
+        {
+            _islandWindow.UpdateMediaUI(new Nova.Media.MediaSessionSnapshot
+            {
+                SourceAppId = "Spotify.exe",
+                SourceDisplayName = "Spotify",
+                PlaybackStatus = Nova.Media.MediaPlaybackStatus.Playing,
+                HasActiveSession = true,
+                TrackInfo = new Nova.Media.MediaTrackInfo
+                {
+                    Title = "Underground",
+                    Artist = "Men At Work",
+                    AlbumTitle = "Business as Usual"
+                },
+                Capabilities = Nova.Media.MediaCapabilities.All
+            });
+        }
+
         if (e.Args.Contains("--demo-notification"))
         {
             _islandWindow.NotificationService.PostNotification(new Nova.Notifications.NovaNotification
@@ -91,7 +109,27 @@ public partial class App : Application
             _islandWindow.UpdateNotificationUI();
         }
 
-        if (e.Args.Contains("--expanded"))
+        if (e.Args.Contains("--slide-notes"))
+        {
+            _islandWindow.TransitionTo(IslandState.Expanded);
+            _islandWindow.NavigateToSlide("notes");
+        }
+        else if (e.Args.Contains("--slide-todos"))
+        {
+            _islandWindow.TransitionTo(IslandState.Expanded);
+            _islandWindow.NavigateToSlide("todos");
+        }
+        else if (e.Args.Contains("--slide-tools"))
+        {
+            _islandWindow.TransitionTo(IslandState.Expanded);
+            _islandWindow.NavigateToSlide("tools");
+        }
+        else if (e.Args.Contains("--slide-mascot"))
+        {
+            _islandWindow.TransitionTo(IslandState.Expanded);
+            _islandWindow.NavigateToSlide("mascot");
+        }
+        else if (e.Args.Contains("--expanded"))
         {
             _islandWindow.TransitionTo(IslandState.Expanded);
         }

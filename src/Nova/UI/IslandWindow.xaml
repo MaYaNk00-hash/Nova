@@ -13,8 +13,8 @@
         ShowInTaskbar="False"
         Topmost="True"
         ResizeMode="NoResize"
-        Width="480"
-        Height="290"
+        Width="960"
+        Height="380"
         MouseMove="Window_MouseMove"
         MouseLeftButtonDown="Window_MouseLeftButtonDown"
         MouseRightButtonUp="Window_MouseRightButtonUp"
@@ -84,9 +84,9 @@
             <Setter Property="Foreground" Value="#E2E8F0"/>
             <Setter Property="BorderBrush" Value="#2E405C"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Width" Value="30"/>
-            <Setter Property="Height" Value="28"/>
-            <Setter Property="FontSize" Value="11.5"/>
+            <Setter Property="Width" Value="26"/>
+            <Setter Property="Height" Value="24"/>
+            <Setter Property="FontSize" Value="10.5"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
                 <Setter.Value>
@@ -94,7 +94,7 @@
                         <Border Background="{TemplateBinding Background}" 
                                 BorderBrush="{TemplateBinding BorderBrush}" 
                                 BorderThickness="{TemplateBinding BorderThickness}" 
-                                CornerRadius="14">
+                                CornerRadius="6">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                     </ControlTemplate>
@@ -110,12 +110,45 @@
                             </LinearGradientBrush>
                         </Setter.Value>
                     </Setter>
-                    <Setter Property="BorderBrush" Value="#00F2FE"/>
-                    <Setter Property="Foreground" Value="#00F2FE"/>
+                    <Setter Property="BorderBrush" Value="#38BDF8"/>
+                    <Setter Property="Foreground" Value="#38BDF8"/>
                 </Trigger>
                 <Trigger Property="IsEnabled" Value="False">
                     <Setter Property="Opacity" Value="0.32"/>
                     <Setter Property="Cursor" Value="Arrow"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Slide Switcher Tab Button style -->
+        <Style x:Key="SlideTabButton" TargetType="Button">
+            <Setter Property="Background" Value="#111624"/>
+            <Setter Property="Foreground" Value="#94A3B8"/>
+            <Setter Property="BorderBrush" Value="#1E293B"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="8,2.5"/>
+            <Setter Property="FontSize" Value="9.5"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Margin" Value="2,0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" 
+                                BorderBrush="{TemplateBinding BorderBrush}" 
+                                BorderThickness="{TemplateBinding BorderThickness}" 
+                                CornerRadius="10" 
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#1E293B"/>
+                    <Setter Property="BorderBrush" Value="#38BDF8"/>
+                    <Setter Property="Foreground" Value="#38BDF8"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
@@ -125,13 +158,13 @@
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="Foreground" Value="#94A3B8"/>
             <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Width" Value="24"/>
-            <Setter Property="Height" Value="24"/>
+            <Setter Property="Width" Value="22"/>
+            <Setter Property="Height" Value="22"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}" CornerRadius="12">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="11">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                     </ControlTemplate>
@@ -140,7 +173,7 @@
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
                     <Setter Property="Background" Value="#232B3E"/>
-                    <Setter Property="Foreground" Value="#00F2FE"/>
+                    <Setter Property="Foreground" Value="#38BDF8"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
@@ -159,7 +192,7 @@
                     <Setter Property="Margin" Value="4,2"/>
                 </Style>
             </ContextMenu.Resources>
-            <MenuItem Header="Expand / Dashboard" Click="MenuExpand_Click" FontWeight="SemiBold"/>
+            <MenuItem Header="Expand / HUD Dashboard" Click="MenuExpand_Click" FontWeight="SemiBold"/>
             <MenuItem Header="Compact Pill" Click="MenuCompact_Click"/>
             <MenuItem Header="Reset Position (Top Center)" Click="MenuResetPosition_Click"/>
             <MenuItem x:Name="MenuAlwaysOnTop" Header="Always On Top" IsCheckable="True" IsChecked="True" Click="MenuAlwaysOnTop_Click"/>
@@ -184,7 +217,7 @@
         </ContextMenu>
     </Window.Resources>
 
-    <Grid HorizontalAlignment="Center" VerticalAlignment="Top" Margin="10">
+    <Grid HorizontalAlignment="Center" VerticalAlignment="Top" Margin="10,4,10,10">
         <!-- Main Island Pill Border with Obsidian Gloss & Cybernetic Specular Rim -->
         <Border x:Name="PillBorder"
                 Width="210"
@@ -204,32 +237,32 @@
             </Border.BorderBrush>
             <Border.Background>
                 <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                    <GradientStop Color="#0D111A" Offset="0.0"/>
-                    <GradientStop Color="#070A10" Offset="0.5"/>
-                    <GradientStop Color="#04060A" Offset="1.0"/>
+                    <GradientStop Color="#0A0D14" Offset="0.0"/>
+                    <GradientStop Color="#05080E" Offset="0.5"/>
+                    <GradientStop Color="#020408" Offset="1.0"/>
                 </LinearGradientBrush>
             </Border.Background>
             <Border.Effect>
-                <DropShadowEffect BlurRadius="26" ShadowDepth="4" Direction="270" Color="#000000" Opacity="0.75"/>
+                <DropShadowEffect BlurRadius="28" ShadowDepth="4" Direction="270" Color="#000000" Opacity="0.82"/>
             </Border.Effect>
 
             <Grid>
                 <!-- Top Specular Rim Reflection Shine -->
                 <Border x:Name="PillGlossShine" 
-                        Height="19" 
+                        Height="18" 
                         VerticalAlignment="Top" 
                         CornerRadius="21,21,0,0" 
                         IsHitTestVisible="False">
                     <Border.Background>
                         <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                            <GradientStop Color="#2EFFFFFF" Offset="0.0"/>
-                            <GradientStop Color="#08FFFFFF" Offset="0.45"/>
+                            <GradientStop Color="#2AFFFFFF" Offset="0.0"/>
+                            <GradientStop Color="#07FFFFFF" Offset="0.45"/>
                             <GradientStop Color="#00FFFFFF" Offset="1.0"/>
                         </LinearGradientBrush>
                     </Border.Background>
                 </Border>
 
-                <!-- COMPACT STATE VIEW -->
+                <!-- COMPACT STATE VIEW (210x42 Sleek Pill) -->
                 <Grid x:Name="CompactPanel" Height="42" VerticalAlignment="Center" Margin="10,0">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/>
@@ -301,7 +334,7 @@
                                 Margin="4,0,0,0"/>
                     </Grid>
 
-                    <!-- Compact Notification Bar (highest priority, visible when notification arrives) -->
+                    <!-- Compact Notification Bar -->
                     <Grid x:Name="CompactNotificationPanel" Grid.Column="1" VerticalAlignment="Center" Visibility="Collapsed" Margin="0,0,6,0">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto"/>
@@ -343,49 +376,51 @@
                             Style="{StaticResource IconButton}" 
                             Content="▾" 
                             FontSize="12" 
-                            ToolTip="Expand Island" 
+                            ToolTip="Expand HUD Dashboard" 
                             Click="ExpandButton_Click"/>
                 </Grid>
 
-                <!-- EXPANDED STATE VIEW -->
+                <!-- EXPANDED STATE VIEW (Wide Panoramic HUD + Slides) -->
                 <Grid x:Name="ExpandedPanel" 
                       Opacity="0" 
                       Visibility="Collapsed" 
-                      Margin="16,12,16,12">
+                      Margin="14,6,14,6">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
-                        <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
-                    <!-- Header Row -->
-                    <Grid Grid.Row="0" Margin="0,0,0,8">
+                    <!-- TOP HEADER ROW: Slide Selector Tabs & Window Controls -->
+                    <Grid Grid.Row="0" Margin="0,0,0,6">
                         <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
 
+                        <!-- Brand Badge -->
                         <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                            <Ellipse Width="8" Height="8" Fill="#00F2FE" Margin="0,0,8,0">
+                            <Ellipse Width="7" Height="7" Fill="#00F2FE" Margin="0,0,6,0">
                                 <Ellipse.Effect>
                                     <DropShadowEffect Color="#00F2FE" BlurRadius="6" ShadowDepth="0" Opacity="0.9"/>
                                 </Ellipse.Effect>
                             </Ellipse>
-                            <TextBlock Text="NOVA COMPANION" 
-                                       FontWeight="Bold" 
-                                       FontSize="12" 
-                                       Foreground="#00F2FE" 
-                                       VerticalAlignment="Center"/>
-                            <TextBlock Text="v0.1.0" 
-                                       FontSize="10" 
-                                       Foreground="#64748B" 
-                                       Margin="8,0,0,0" 
-                                       VerticalAlignment="Center"/>
+                            <TextBlock Text="NOVA" FontWeight="Bold" FontSize="11" Foreground="#00F2FE" VerticalAlignment="Center"/>
+                            <TextBlock Text="HUD" FontWeight="SemiBold" FontSize="10" Foreground="#38BDF8" Margin="4,0,0,0" VerticalAlignment="Center"/>
                         </StackPanel>
 
-                        <!-- Header Controls -->
-                        <StackPanel Grid.Column="1" Orientation="Horizontal">
+                        <!-- Slide Navigation Pills -->
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <Button x:Name="TabBtnHud" Style="{StaticResource SlideTabButton}" Content="📊 HUD" Click="TabBtnHud_Click" Background="#0284C7" Foreground="#FFFFFF" BorderBrush="#38BDF8"/>
+                            <Button x:Name="TabBtnNotes" Style="{StaticResource SlideTabButton}" Content="📝 Notes" Click="TabBtnNotes_Click"/>
+                            <Button x:Name="TabBtnTodos" Style="{StaticResource SlideTabButton}" Content="✅ Tasks" Click="TabBtnTodos_Click"/>
+                            <Button x:Name="TabBtnTools" Style="{StaticResource SlideTabButton}" Content="⚡ Tools" Click="TabBtnTools_Click"/>
+                            <Button x:Name="TabBtnMascot" Style="{StaticResource SlideTabButton}" Content="🤖 Mascot" Click="TabBtnMascot_Click"/>
+                        </StackPanel>
+
+                        <!-- Window Quick Controls -->
+                        <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
                             <Button Style="{StaticResource IconButton}" 
                                     x:Name="PinButton" 
                                     Content="📌" 
@@ -407,15 +442,15 @@
                         </StackPanel>
                     </Grid>
 
-                    <!-- Row 1: Expandable Notification Banner (visible when active notification exists) -->
+                    <!-- Expandable Notification Banner (Row 1) -->
                     <Border x:Name="ExpandedNotificationBanner" 
                             Grid.Row="1" 
                             Background="#181D29" 
                             BorderBrush="#D97706" 
                             BorderThickness="1" 
                             CornerRadius="6" 
-                            Padding="8,5" 
-                            Margin="0,0,0,8" 
+                            Padding="8,4" 
+                            Margin="0,0,0,6" 
                             Visibility="Collapsed">
                         <Grid>
                             <Grid.ColumnDefinitions>
@@ -424,7 +459,7 @@
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
 
-                            <TextBlock Text="🔔" FontSize="12" Foreground="#F59E0B" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                            <TextBlock Text="🔔" FontSize="11" Foreground="#F59E0B" VerticalAlignment="Center" Margin="0,0,6,0"/>
 
                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                 <StackPanel Orientation="Horizontal">
@@ -443,235 +478,551 @@
                         </Grid>
                     </Border>
 
-                    <!-- Row 2: Content Cards -->
-                    <Grid Grid.Row="2" Margin="0,0,0,10">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="1.15*"/>
-                            <ColumnDefinition Width="8"/>
-                            <ColumnDefinition Width="1.25*"/>
-                        </Grid.ColumnDefinitions>
+                    <!-- SLIDES CONTENT AREA (Row 2) -->
+                    <Grid Grid.Row="2">
 
-                        <!-- Card 1: Showcase Robot & Reaction Controls -->
-                        <Border Grid.Column="0" 
-                                CornerRadius="10" 
-                                BorderThickness="1" 
-                                Padding="8">
-                            <Border.Background>
-                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                    <GradientStop Color="#0D121D" Offset="0.0"/>
-                                    <GradientStop Color="#060910" Offset="1.0"/>
-                                </LinearGradientBrush>
-                            </Border.Background>
-                            <Border.BorderBrush>
-                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                    <GradientStop Color="#2A3950" Offset="0.0"/>
-                                    <GradientStop Color="#141E2D" Offset="1.0"/>
-                                </LinearGradientBrush>
-                            </Border.BorderBrush>
-                            <Grid>
+                        <!-- SLIDE 1: HUD BAR (Matching the user's reference image exactly!) -->
+                        <Grid x:Name="SlideHudPanel" Visibility="Visible">
+                            <Grid.RenderTransform>
+                                <TranslateTransform x:Name="SlideHudTransform" X="0" Y="0"/>
+                            </Grid.RenderTransform>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="2.7*"/>
+                                <ColumnDefinition Width="1"/>
+                                <ColumnDefinition Width="2.3*"/>
+                                <ColumnDefinition Width="1"/>
+                                <ColumnDefinition Width="3.0*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- COLUMN 1: NOW PLAYING & MUSIC PLAYER -->
+                            <Grid Grid.Column="0" Margin="4,0,8,0" VerticalAlignment="Center">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto"/>
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
 
-                                <!-- Showcase Robot (42px) -->
-                                <robot:RobotCompanion x:Name="ExpandedRobot" 
-                                                      CompanionSize="42" 
-                                                      Grid.Column="0" 
-                                                      VerticalAlignment="Center" 
-                                                      Margin="0,0,8,0"/>
-
-                                <!-- Reaction Test Buttons -->
-                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                    <TextBlock x:Name="RobotStatusText" 
-                                               Text="COMPANION • ACTIVE" 
-                                               FontSize="8.5" 
-                                               FontWeight="Bold" 
-                                               Foreground="#00F2FE" 
-                                               TextTrimming="CharacterEllipsis" 
-                                               Margin="0,0,0,1"/>
-                                    <TextBlock x:Name="EventStatusText" 
-                                               Text="BUS: READY • 0 EVENTS" 
-                                               FontSize="7.5" 
-                                               FontWeight="Medium" 
-                                               Foreground="#94A3B8" 
-                                               TextTrimming="CharacterEllipsis" 
-                                               Margin="0,0,0,4"/>
-                                    <WrapPanel>
-                                        <Button Style="{StaticResource IslandActionButton}" 
-                                                Content="✨ Happy" 
-                                                Click="BtnExcited_Click" 
-                                                Margin="0,0,3,3"/>
-                                        <Button Style="{StaticResource IslandActionButton}" 
-                                                Content="❓ Confused" 
-                                                Click="BtnConfused_Click" 
-                                                Margin="0,0,3,3"/>
-                                        <Button Style="{StaticResource IslandActionButton}" 
-                                                Content="👋 Nod" 
-                                                Click="BtnNod_Click" 
-                                                Margin="0,0,3,3"/>
-                                    </WrapPanel>
-                                </StackPanel>
-                            </Grid>
-                        </Border>
-
-                        <!-- Card 2: Now Playing & Media Controls (with YouTube Music integration) -->
-                        <Border Grid.Column="2" 
-                                CornerRadius="10" 
-                                BorderThickness="1" 
-                                Padding="10">
-                            <Border.Background>
-                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                    <GradientStop Color="#0D121D" Offset="0.0"/>
-                                    <GradientStop Color="#060910" Offset="1.0"/>
-                                </LinearGradientBrush>
-                            </Border.Background>
-                            <Border.BorderBrush>
-                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                    <GradientStop Color="#2A3950" Offset="0.0"/>
-                                    <GradientStop Color="#141E2D" Offset="1.0"/>
-                                </LinearGradientBrush>
-                            </Border.BorderBrush>
-                            <Grid>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="*"/>
-                                    <RowDefinition Height="Auto"/>
-                                </Grid.RowDefinitions>
-
-                                <!-- Header: Badge, Visualizer & YouTube Music Action -->
-                                <Grid Grid.Row="0" Margin="0,0,0,6">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                    </Grid.ColumnDefinitions>
-                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                        <TextBlock x:Name="MediaBadgeText" 
-                                                   Text="MEDIA • STANDBY" 
-                                                   FontSize="8.5" 
+                                <!-- Album Artwork Square -->
+                                <Border Grid.Column="0" 
+                                        Width="58" 
+                                        Height="58" 
+                                        CornerRadius="8" 
+                                        Background="#151E2E" 
+                                        BorderBrush="#2D3F5C" 
+                                        BorderThickness="1" 
+                                        ClipToBounds="True" 
+                                        HorizontalAlignment="Left" 
+                                        VerticalAlignment="Center">
+                                    <Grid>
+                                        <Border x:Name="HudAlbumColorBack" Background="#FBBF24"/>
+                                        <TextBlock x:Name="MediaPlaceholderIcon" 
+                                                   Text="♫" 
+                                                   FontSize="20" 
+                                                   Foreground="#0B0F19" 
                                                    FontWeight="Bold" 
-                                                   Foreground="#10B981" 
+                                                   HorizontalAlignment="Center" 
                                                    VerticalAlignment="Center"/>
-                                        <TextBlock x:Name="MediaVisualizerText" 
-                                                   Text="ılıll" 
-                                                   FontSize="10.5" 
-                                                   FontWeight="Bold" 
-                                                   Foreground="#00F2FE" 
-                                                   Margin="6,0,0,0" 
-                                                   VerticalAlignment="Center" 
-                                                   Visibility="Collapsed"/>
-                                    </StackPanel>
-                                    <Button x:Name="BtnOpenYouTubeMusic" 
-                                            Grid.Column="1" 
-                                            Style="{StaticResource IslandActionButton}" 
-                                            Content="🎵 YouTube Music" 
-                                            ToolTip="Connect or Open https://music.youtube.com/ in browser" 
-                                            Click="OpenYouTubeMusic_Click" 
-                                            Padding="6,1.5" 
-                                            FontSize="8"/>
-                                </Grid>
+                                        <Image x:Name="MediaArtworkImage" 
+                                               Stretch="UniformToFill" 
+                                               Visibility="Collapsed"/>
+                                    </Grid>
+                                </Border>
 
-                                <!-- Track Metadata & Artwork -->
-                                <Grid Grid.Row="1" VerticalAlignment="Center" Margin="0,0,0,6">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="38"/>
-                                        <ColumnDefinition Width="*"/>
-                                    </Grid.ColumnDefinitions>
-
-                                    <!-- Artwork or Icon Placeholder with glossy glass frame -->
-                                    <Border Grid.Column="0" 
-                                            Width="36" 
-                                            Height="36" 
-                                            CornerRadius="6" 
-                                            Background="#151E2E" 
-                                            BorderBrush="#2D3F5C" 
-                                            BorderThickness="1" 
-                                            ClipToBounds="True" 
-                                            HorizontalAlignment="Left" 
-                                            VerticalAlignment="Center">
-                                        <Grid>
-                                            <TextBlock x:Name="MediaPlaceholderIcon" 
-                                                       Text="♫" 
-                                                       FontSize="16" 
-                                                       Foreground="#00F2FE" 
-                                                       HorizontalAlignment="Center" 
-                                                       VerticalAlignment="Center"/>
-                                            <Image x:Name="MediaArtworkImage" 
-                                                   Stretch="UniformToFill" 
-                                                   Visibility="Collapsed"/>
-                                        </Grid>
-                                    </Border>
-
-                                    <!-- Title & Artist -->
-                                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="8,0,0,0">
+                                <!-- Details & Controls -->
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="10,0,0,0">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
                                         <TextBlock x:Name="MediaTitleText" 
                                                    Text="No Media Playing" 
-                                                   FontSize="11" 
-                                                   FontWeight="SemiBold" 
-                                                   Foreground="#F8FAFC" 
+                                                   FontSize="12.5" 
+                                                   FontWeight="Bold" 
+                                                   Foreground="#FFFFFF" 
                                                    TextTrimming="CharacterEllipsis"/>
-                                        <TextBlock x:Name="MediaArtistText" 
-                                                   Text="Awaiting audio session" 
-                                                   FontSize="9" 
-                                                   Foreground="#94A3B8" 
-                                                   TextTrimming="CharacterEllipsis" 
-                                                   Margin="0,2,0,0"/>
-                                    </StackPanel>
-                                </Grid>
+                                        <TextBlock x:Name="MediaVisualizerText" 
+                                                   Grid.Column="1"
+                                                   Text="ılıll" 
+                                                   FontSize="9.5" 
+                                                   FontWeight="Bold" 
+                                                   Foreground="#38BDF8" 
+                                                   Margin="4,0,0,0"
+                                                   VerticalAlignment="Center"
+                                                   Visibility="Collapsed"/>
+                                    </Grid>
+                                    <TextBlock x:Name="MediaArtistText" 
+                                               Text="Awaiting audio session" 
+                                               FontSize="9.5" 
+                                               Foreground="#9CA3AF" 
+                                               TextTrimming="CharacterEllipsis" 
+                                               Margin="0,1,0,3"/>
 
-                                <!-- Playback Controls with Shiny Metallic Transport Buttons -->
-                                <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center">
-                                    <Button x:Name="MediaPrevBtn" 
-                                            Style="{StaticResource MediaControlButton}" 
-                                            Content="⏮" 
-                                            ToolTip="Previous Track" 
-                                            IsEnabled="False" 
-                                            Click="MediaPrev_Click" 
-                                            Margin="0,0,8,0"/>
-                                    <Button x:Name="MediaPlayPauseBtn" 
-                                            Style="{StaticResource MediaControlButton}" 
-                                            Content="▶" 
-                                            ToolTip="Play / Pause" 
-                                            IsEnabled="False" 
-                                            Click="MediaPlayPause_Click" 
-                                            Margin="0,0,8,0"/>
-                                    <Button x:Name="MediaNextBtn" 
-                                            Style="{StaticResource MediaControlButton}" 
-                                            Content="⏭" 
-                                            ToolTip="Next Track" 
-                                            IsEnabled="False" 
-                                            Click="MediaNext_Click"/>
+                                    <!-- Transport Controls & YouTube Music Button -->
+                                    <StackPanel Orientation="Horizontal" Margin="0,1,0,3">
+                                        <Button x:Name="MediaPrevBtn" 
+                                                Style="{StaticResource MediaControlButton}" 
+                                                Content="⏮" 
+                                                ToolTip="Previous Track" 
+                                                IsEnabled="False" 
+                                                Click="MediaPrev_Click" 
+                                                Margin="0,0,4,0"/>
+                                        <Button x:Name="MediaPlayPauseBtn" 
+                                                Style="{StaticResource MediaControlButton}" 
+                                                Content="▶" 
+                                                ToolTip="Play / Pause" 
+                                                IsEnabled="False" 
+                                                Click="MediaPlayPause_Click" 
+                                                Margin="0,0,4,0"/>
+                                        <Button x:Name="MediaNextBtn" 
+                                                Style="{StaticResource MediaControlButton}" 
+                                                Content="⏭" 
+                                                ToolTip="Next Track" 
+                                                IsEnabled="False" 
+                                                Click="MediaNext_Click" 
+                                                Margin="0,0,6,0"/>
+                                        <Button x:Name="BtnOpenYouTubeMusic" 
+                                                Style="{StaticResource IslandActionButton}" 
+                                                Content="🎵 YTM" 
+                                                ToolTip="Open YouTube Music" 
+                                                Click="OpenYouTubeMusic_Click" 
+                                                Padding="4,1" 
+                                                FontSize="7.5" 
+                                                VerticalAlignment="Center"/>
+                                        <!-- Hidden fallback to preserve bindings -->
+                                        <TextBlock x:Name="MediaBadgeText" Visibility="Collapsed" Text="PLAYING"/>
+                                    </StackPanel>
+
+                                    <!-- Track Timeline Progress Bar -->
+                                    <Grid Margin="0,1,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock x:Name="HudProgressElapsedText" 
+                                                   Text="00:41" 
+                                                   FontSize="7.5" 
+                                                   Foreground="#94A3B8" 
+                                                   VerticalAlignment="Center" 
+                                                   Margin="0,0,5,0"/>
+                                        <Border Grid.Column="1" 
+                                                Height="3" 
+                                                Background="#1E293B" 
+                                                CornerRadius="1.5" 
+                                                VerticalAlignment="Center">
+                                            <Border x:Name="HudProgressBar" 
+                                                    HorizontalAlignment="Left" 
+                                                    Width="45" 
+                                                    Background="#38BDF8" 
+                                                    CornerRadius="1.5"/>
+                                        </Border>
+                                        <TextBlock x:Name="HudProgressTotalText" 
+                                                   Grid.Column="2" 
+                                                   Text="03:04" 
+                                                   FontSize="7.5" 
+                                                   Foreground="#94A3B8" 
+                                                   VerticalAlignment="Center" 
+                                                   Margin="5,0,0,0"/>
+                                    </Grid>
                                 </StackPanel>
                             </Grid>
-                        </Border>
-                    </Grid>
 
-                    <!-- Footer Controls -->
-                    <Grid Grid.Row="3">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
+                            <!-- VERTICAL DIVIDER 1 -->
+                            <Border Grid.Column="1" Background="#1E293B" Margin="2,6"/>
 
-                        <TextBlock Text="Move cursor to track • Click mascot to nod" 
-                                   FontSize="9.5" 
-                                   Foreground="#64748B" 
-                                   VerticalAlignment="Center"/>
+                            <!-- COLUMN 2: DATE, 7-DAY CALENDAR & LARGE CLOCK -->
+                            <Grid Grid.Column="2" Margin="8,0,8,0" VerticalAlignment="Center">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
 
-                        <StackPanel Grid.Column="1" Orientation="Horizontal">
-                            <Button Style="{StaticResource IslandActionButton}" 
-                                    Content="Center" 
-                                    ToolTip="Center to top of screen" 
-                                    Click="MenuResetPosition_Click" 
-                                    Margin="0,0,6,0"/>
-                            <Button Style="{StaticResource IslandActionButton}" 
-                                    Content="Compact" 
-                                    Click="CompactButton_Click" 
-                                    Margin="0,0,6,0"/>
-                            <Button Style="{StaticResource IslandActionButton}" 
-                                    Content="Exit" 
-                                    Click="MenuExit_Click"/>
-                        </StackPanel>
+                                <!-- Month Display -->
+                                <TextBlock x:Name="HudMonthText" 
+                                           Grid.Column="0" 
+                                           Text="Apr" 
+                                           FontSize="21" 
+                                           FontWeight="Bold" 
+                                           Foreground="#F8FAFC" 
+                                           VerticalAlignment="Center" 
+                                           Margin="0,0,10,0"/>
+
+                                <!-- Calendar Strip & Clock -->
+                                <StackPanel Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <!-- 7-Day Calendar Strip -->
+                                    <Grid x:Name="HudCalendarGrid" HorizontalAlignment="Center" Margin="0,0,0,2">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <!-- Monday -->
+                                        <StackPanel Grid.Column="0" HorizontalAlignment="Center" Margin="2,0">
+                                            <TextBlock x:Name="DayLabel0" Text="M" FontSize="7.5" Foreground="#94A3B8" HorizontalAlignment="Center"/>
+                                            <Border x:Name="DayBorder0" CornerRadius="3" Padding="2,0.5">
+                                                <TextBlock x:Name="DayNum0" Text="20" FontSize="9" FontWeight="Medium" Foreground="#E2E8F0" HorizontalAlignment="Center"/>
+                                            </Border>
+                                        </StackPanel>
+                                        <!-- Tuesday -->
+                                        <StackPanel Grid.Column="1" HorizontalAlignment="Center" Margin="2,0">
+                                            <TextBlock x:Name="DayLabel1" Text="T" FontSize="7.5" Foreground="#94A3B8" HorizontalAlignment="Center"/>
+                                            <Border x:Name="DayBorder1" CornerRadius="3" Padding="2,0.5">
+                                                <TextBlock x:Name="DayNum1" Text="21" FontSize="9" FontWeight="Medium" Foreground="#E2E8F0" HorizontalAlignment="Center"/>
+                                            </Border>
+                                        </StackPanel>
+                                        <!-- Wednesday -->
+                                        <StackPanel Grid.Column="2" HorizontalAlignment="Center" Margin="2,0">
+                                            <TextBlock x:Name="DayLabel2" Text="W" FontSize="7.5" Foreground="#94A3B8" HorizontalAlignment="Center"/>
+                                            <Border x:Name="DayBorder2" CornerRadius="3" Padding="2,0.5">
+                                                <TextBlock x:Name="DayNum2" Text="22" FontSize="9" FontWeight="Medium" Foreground="#E2E8F0" HorizontalAlignment="Center"/>
+                                            </Border>
+                                        </StackPanel>
+                                        <!-- Thursday (Active Highlighted) -->
+                                        <StackPanel Grid.Column="3" HorizontalAlignment="Center" Margin="2,0">
+                                            <TextBlock x:Name="DayLabel3" Text="THU" FontSize="7.5" FontWeight="Bold" Foreground="#38BDF8" HorizontalAlignment="Center"/>
+                                            <Border x:Name="DayBorder3" Background="#38BDF8" CornerRadius="3" Padding="3,0.5">
+                                                <TextBlock x:Name="DayNum3" Text="23" FontSize="9" FontWeight="Bold" Foreground="#020817" HorizontalAlignment="Center"/>
+                                            </Border>
+                                        </StackPanel>
+                                        <!-- Friday -->
+                                        <StackPanel Grid.Column="4" HorizontalAlignment="Center" Margin="2,0">
+                                            <TextBlock x:Name="DayLabel4" Text="F" FontSize="7.5" Foreground="#94A3B8" HorizontalAlignment="Center"/>
+                                            <Border x:Name="DayBorder4" CornerRadius="3" Padding="2,0.5">
+                                                <TextBlock x:Name="DayNum4" Text="24" FontSize="9" FontWeight="Medium" Foreground="#E2E8F0" HorizontalAlignment="Center"/>
+                                            </Border>
+                                        </StackPanel>
+                                        <!-- Saturday (Weekend) -->
+                                        <StackPanel Grid.Column="5" HorizontalAlignment="Center" Margin="2,0">
+                                            <TextBlock x:Name="DayLabel5" Text="S" FontSize="7.5" Foreground="#EF4444" HorizontalAlignment="Center"/>
+                                            <Border x:Name="DayBorder5" CornerRadius="3" Padding="2,0.5">
+                                                <TextBlock x:Name="DayNum5" Text="25" FontSize="9" FontWeight="Bold" Foreground="#EF4444" HorizontalAlignment="Center"/>
+                                            </Border>
+                                        </StackPanel>
+                                        <!-- Sunday (Weekend) -->
+                                        <StackPanel Grid.Column="6" HorizontalAlignment="Center" Margin="2,0">
+                                            <TextBlock x:Name="DayLabel6" Text="S" FontSize="7.5" Foreground="#EF4444" HorizontalAlignment="Center"/>
+                                            <Border x:Name="DayBorder6" CornerRadius="3" Padding="2,0.5">
+                                                <TextBlock x:Name="DayNum6" Text="26" FontSize="9" FontWeight="Bold" Foreground="#EF4444" HorizontalAlignment="Center"/>
+                                            </Border>
+                                        </StackPanel>
+                                    </Grid>
+
+                                    <!-- Large Digital Clock -->
+                                    <TextBlock x:Name="HudClockText" 
+                                               Text="16:34" 
+                                               FontSize="17.5" 
+                                               FontWeight="Bold" 
+                                               Foreground="#FFFFFF" 
+                                               HorizontalAlignment="Center" 
+                                               Margin="0,1,0,0"/>
+
+                                    <!-- Bottom Center Capsule Handle (clickable to toggle slides) -->
+                                    <Border Width="34" 
+                                            Height="3.5" 
+                                            Background="#475569" 
+                                            CornerRadius="1.75" 
+                                            Margin="0,3,0,0" 
+                                            HorizontalAlignment="Center" 
+                                            ToolTip="Click to toggle Slides workspace" 
+                                            Cursor="Hand" 
+                                            MouseLeftButtonDown="HandleBar_MouseLeftButtonDown"/>
+                                </StackPanel>
+                            </Grid>
+
+                            <!-- VERTICAL DIVIDER 2 -->
+                            <Border Grid.Column="3" Background="#1E293B" Margin="2,6"/>
+
+                            <!-- COLUMN 3: SYSTEM MONITOR & HARDWARE STATS + VOLUME -->
+                            <Grid Grid.Column="4" Margin="8,0,4,0" VerticalAlignment="Center">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <!-- Hardware Metrics Rows -->
+                                <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,8,0">
+                                    <!-- Header: Title + Load Badge -->
+                                    <Grid Margin="0,0,0,3">
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                            <TextBlock Text="💻" FontSize="8.5" Margin="0,0,4,0" VerticalAlignment="Center"/>
+                                            <TextBlock Text="System Monitor" FontSize="9" FontWeight="Bold" Foreground="#E2E8F0" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                        <Border HorizontalAlignment="Right" Background="#052E16" BorderBrush="#22C55E" BorderThickness="0.8" CornerRadius="3" Padding="4,0.5">
+                                            <TextBlock x:Name="HudOverallLoadBadge" Text="8%" FontSize="7.5" FontWeight="Bold" Foreground="#22C55E"/>
+                                        </Border>
+                                    </Grid>
+
+                                    <!-- CPU Metric -->
+                                    <Grid Margin="0,1">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="28"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="26"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="CPU" FontSize="7.5" FontWeight="Bold" Foreground="#38BDF8" VerticalAlignment="Center"/>
+                                        <Border Grid.Column="1" Height="3.5" Background="#131B29" CornerRadius="1.75" Margin="3,0" VerticalAlignment="Center">
+                                            <Border x:Name="HudCpuBar" HorizontalAlignment="Left" Width="10" Background="#38BDF8" CornerRadius="1.75"/>
+                                        </Border>
+                                        <TextBlock x:Name="HudCpuPercentText" Grid.Column="2" Text="8%" FontSize="7.5" FontWeight="SemiBold" Foreground="#38BDF8" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                    </Grid>
+
+                                    <!-- RAM Metric -->
+                                    <Grid Margin="0,1">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="28"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="RAM" FontSize="7.5" FontWeight="Bold" Foreground="#22C55E" VerticalAlignment="Center"/>
+                                        <Border Grid.Column="1" Height="3.5" Background="#131B29" CornerRadius="1.75" Margin="3,0" VerticalAlignment="Center">
+                                            <Border x:Name="HudRamBar" HorizontalAlignment="Left" Width="60" Background="#22C55E" CornerRadius="1.75"/>
+                                        </Border>
+                                        <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                            <TextBlock x:Name="HudRamPercentText" Text="76%" FontSize="7.5" FontWeight="SemiBold" Foreground="#22C55E"/>
+                                            <TextBlock x:Name="HudRamUsageText" Text="11.8/16GB" FontSize="6.5" Foreground="#64748B" Margin="3,0,0,0"/>
+                                        </StackPanel>
+                                    </Grid>
+
+                                    <!-- DISK Metric -->
+                                    <Grid Margin="0,1">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="28"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="DISK" FontSize="7.5" FontWeight="Bold" Foreground="#F97316" VerticalAlignment="Center"/>
+                                        <Border Grid.Column="1" Height="3.5" Background="#131B29" CornerRadius="1.75" Margin="3,0" VerticalAlignment="Center">
+                                            <Border x:Name="HudDiskBar" HorizontalAlignment="Left" Width="30" Background="#F97316" CornerRadius="1.75"/>
+                                        </Border>
+                                        <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                            <TextBlock x:Name="HudDiskPercentText" Text="34%" FontSize="7.5" FontWeight="SemiBold" Foreground="#F97316"/>
+                                            <TextBlock x:Name="HudDiskUsageText" Text="184/470GB" FontSize="6.5" Foreground="#64748B" Margin="3,0,0,0"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </StackPanel>
+
+                                <!-- Volume Vertical Pill Capsule -->
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="4,0,8,0">
+                                    <TextBlock x:Name="HudVolumeLevelText" Text="100" FontSize="7" FontWeight="Bold" Foreground="#E2E8F0" HorizontalAlignment="Center" Margin="0,0,0,1"/>
+                                    <Border x:Name="HudVolumePill" 
+                                            Width="12" 
+                                            Height="38" 
+                                            CornerRadius="6" 
+                                            Background="#38BDF8" 
+                                            ToolTip="System Volume" 
+                                            Cursor="Hand" 
+                                            MouseLeftButtonDown="VolumePill_MouseLeftButtonDown"/>
+                                    <TextBlock Text="🔊" FontSize="8" Foreground="#38BDF8" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                                </StackPanel>
+
+                                <!-- Action Quick Buttons (Mascot & Settings) -->
+                                <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                                    <Button x:Name="BtnHudMascot" 
+                                            Style="{StaticResource IconButton}" 
+                                            Content="🤖" 
+                                            FontSize="11" 
+                                            ToolTip="Switch to Mascot Companion" 
+                                            Click="TabBtnMascot_Click" 
+                                            Margin="0,0,0,3"/>
+                                    <Button x:Name="BtnHudSettings" 
+                                            Style="{StaticResource IconButton}" 
+                                            Content="⚙" 
+                                            FontSize="11" 
+                                            ToolTip="Options / Menu" 
+                                            Click="BtnSettings_Click"/>
+                                </StackPanel>
+                            </Grid>
+                        </Grid>
+
+                        <!-- SLIDE 2: QUICK NOTES (Local-first instant scratchpad) -->
+                        <Grid x:Name="SlideNotesPanel" Visibility="Collapsed">
+                            <Grid.RenderTransform>
+                                <TranslateTransform x:Name="SlideNotesTransform" X="0" Y="0"/>
+                            </Grid.RenderTransform>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+
+                            <!-- Notes Toolbar -->
+                            <Grid Grid.Row="0" Margin="4,0,4,6">
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <TextBlock Text="📝 Quick Notes" FontWeight="Bold" FontSize="11" Foreground="#38BDF8" VerticalAlignment="Center"/>
+                                    <TextBlock x:Name="NotesCharCountText" Text="0 chars" FontSize="8.5" Foreground="#64748B" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                                    <TextBlock x:Name="NotesWordCountText" Text="0 words" FontSize="8.5" Foreground="#64748B" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                                    <TextBlock x:Name="NotesCopyFeedbackText" Text="" FontSize="8.5" FontWeight="Bold" Foreground="#22C55E" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                    <Button x:Name="NotesCopyBtn" Style="{StaticResource IslandActionButton}" Content="📋 Copy Notes" ToolTip="Copy all notes to clipboard" Click="NotesCopy_Click" Margin="0,0,6,0" Padding="6,2" FontSize="8.5"/>
+                                    <Button x:Name="NotesClearBtn" Style="{StaticResource IslandActionButton}" Content="🗑 Clear" ToolTip="Clear scratchpad" Click="NotesClear_Click" Padding="6,2" FontSize="8.5"/>
+                                </StackPanel>
+                            </Grid>
+
+                            <!-- Text Editor Area -->
+                            <Border Grid.Row="1" Background="#0C101A" BorderBrush="#1E293B" BorderThickness="1" CornerRadius="8" Padding="10">
+                                <TextBox x:Name="NotesTextBox" 
+                                         Background="Transparent" 
+                                         Foreground="#F8FAFC" 
+                                         CaretBrush="#00F2FE" 
+                                         BorderThickness="0" 
+                                         AcceptsReturn="True" 
+                                         TextWrapping="Wrap" 
+                                         VerticalScrollBarVisibility="Auto" 
+                                         FontSize="11.5" 
+                                         TextChanged="NotesTextBox_TextChanged"/>
+                            </Border>
+                        </Grid>
+
+                        <!-- SLIDE 3: TO-DO LIST (Task manager with checkable items) -->
+                        <Grid x:Name="SlideTodosPanel" Visibility="Collapsed">
+                            <Grid.RenderTransform>
+                                <TranslateTransform x:Name="SlideTodosTransform" X="0" Y="0"/>
+                            </Grid.RenderTransform>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <!-- Add Task Input Row -->
+                            <Grid Grid.Row="0" Margin="4,0,4,6">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <Border Background="#0C101A" BorderBrush="#1E293B" BorderThickness="1" CornerRadius="6" Padding="6,2">
+                                    <TextBox x:Name="TodoInputBox" 
+                                             Background="Transparent" 
+                                             Foreground="#F8FAFC" 
+                                             CaretBrush="#00F2FE" 
+                                             BorderThickness="0" 
+                                             FontSize="11" 
+                                             KeyDown="TodoInputBox_KeyDown"/>
+                                </Border>
+                                <Button x:Name="TodoAddBtn" 
+                                        Grid.Column="1" 
+                                        Style="{StaticResource IslandActionButton}" 
+                                        Content="➕ Add Task" 
+                                        Click="TodoAdd_Click" 
+                                        Margin="6,0,0,0" 
+                                        Padding="8,3" 
+                                        FontSize="9.5"/>
+                            </Grid>
+
+                            <!-- Scrollable Tasks List -->
+                            <Border Grid.Row="1" Background="#0C101A" BorderBrush="#1E293B" BorderThickness="1" CornerRadius="8" Padding="6,4">
+                                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                    <StackPanel x:Name="TodoItemsContainer"/>
+                                </ScrollViewer>
+                            </Border>
+
+                            <!-- Filter & Status Footer -->
+                            <Grid Grid.Row="2" Margin="4,6,4,0">
+                                <TextBlock x:Name="TodoCountText" Text="0 active tasks" FontSize="8.5" Foreground="#64748B" VerticalAlignment="Center"/>
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                    <Button x:Name="TodoFilterAllBtn" Style="{StaticResource SlideTabButton}" Content="All" Click="TodoFilterAll_Click" Padding="6,1.5"/>
+                                    <Button x:Name="TodoFilterActiveBtn" Style="{StaticResource SlideTabButton}" Content="Active" Click="TodoFilterActive_Click" Padding="6,1.5"/>
+                                    <Button x:Name="TodoFilterDoneBtn" Style="{StaticResource SlideTabButton}" Content="Done" Click="TodoFilterDone_Click" Padding="6,1.5"/>
+                                    <Button x:Name="TodoClearCompletedBtn" Style="{StaticResource IslandActionButton}" Content="Clear Completed" Click="TodoClearCompleted_Click" Margin="6,0,0,0" Padding="6,1.5" FontSize="8"/>
+                                </StackPanel>
+                            </Grid>
+                        </Grid>
+
+                        <!-- SLIDE 4: QUICK TOOLS & FOCUS TIMER -->
+                        <Grid x:Name="SlideToolsPanel" Visibility="Collapsed">
+                            <Grid.RenderTransform>
+                                <TranslateTransform x:Name="SlideToolsTransform" X="0" Y="0"/>
+                            </Grid.RenderTransform>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="1*"/>
+                                <ColumnDefinition Width="1*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- Left: Focus / Pomodoro Timer -->
+                            <Border Grid.Column="0" Background="#0C101A" BorderBrush="#1E293B" BorderThickness="1" CornerRadius="8" Padding="12" Margin="0,0,6,0">
+                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <TextBlock Text="⏱ Focus Timer" FontWeight="Bold" FontSize="11" Foreground="#38BDF8" HorizontalAlignment="Center" Margin="0,0,0,4"/>
+                                    <TextBlock x:Name="TimerDisplayText" Text="25:00" FontSize="28" FontWeight="Bold" Foreground="#FFFFFF" HorizontalAlignment="Center">
+                                        <TextBlock.Effect>
+                                            <DropShadowEffect Color="#38BDF8" BlurRadius="12" ShadowDepth="0" Opacity="0.5"/>
+                                        </TextBlock.Effect>
+                                    </TextBlock>
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,8,0,8">
+                                        <Button x:Name="TimerStartPauseBtn" Style="{StaticResource IslandActionButton}" Content="▶ Start" Click="TimerStartPause_Click" Margin="0,0,6,0" Padding="12,3" FontSize="10"/>
+                                        <Button x:Name="TimerResetBtn" Style="{StaticResource IslandActionButton}" Content="↺ Reset" Click="TimerReset_Click" Padding="10,3" FontSize="10"/>
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                        <Button x:Name="TimerPreset25Btn" Style="{StaticResource SlideTabButton}" Content="25m Focus" Click="TimerPreset25_Click" Padding="6,2"/>
+                                        <Button x:Name="TimerPreset5Btn" Style="{StaticResource SlideTabButton}" Content="5m Break" Click="TimerPreset5_Click" Padding="6,2"/>
+                                        <Button x:Name="TimerPreset15Btn" Style="{StaticResource SlideTabButton}" Content="15m Rest" Click="TimerPreset15_Click" Padding="6,2"/>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Right: System Power Launchers -->
+                            <Border Grid.Column="1" Background="#0C101A" BorderBrush="#1E293B" BorderThickness="1" CornerRadius="8" Padding="12" Margin="6,0,0,0">
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Text="⚡ Quick Launchers" FontWeight="Bold" FontSize="11" Foreground="#38BDF8" Margin="0,0,0,8"/>
+                                    <UniformGrid Columns="2">
+                                        <Button Style="{StaticResource IslandActionButton}" Content="🧮 Calculator" Click="LaunchCalc_Click" Margin="2,3" Padding="6,4"/>
+                                        <Button Style="{StaticResource IslandActionButton}" Content="📝 Notepad" Click="LaunchNotepad_Click" Margin="2,3" Padding="6,4"/>
+                                        <Button Style="{StaticResource IslandActionButton}" Content="✂ Snipping Tool" Click="LaunchSnip_Click" Margin="2,3" Padding="6,4"/>
+                                        <Button Style="{StaticResource IslandActionButton}" Content="⚙ Task Manager" Click="LaunchTaskMgr_Click" Margin="2,3" Padding="6,4"/>
+                                    </UniformGrid>
+                                    <Button Style="{StaticResource IslandActionButton}" Content="🎵 Open YouTube Music" Click="OpenYouTubeMusic_Click" Margin="2,6,2,0" Padding="6,4" Background="#1E1B4B" BorderBrush="#6366F1"/>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+
+                        <!-- SLIDE 5: MASCOT COMPANION SHOWCASE -->
+                        <Grid x:Name="SlideMascotPanel" Visibility="Collapsed">
+                            <Grid.RenderTransform>
+                                <TranslateTransform x:Name="SlideMascotTransform" X="0" Y="0"/>
+                            </Grid.RenderTransform>
+                            <Border Background="#0C101A" BorderBrush="#1E293B" BorderThickness="1" CornerRadius="8" Padding="12">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <!-- Showcase Robot (46px) -->
+                                    <robot:RobotCompanion x:Name="ExpandedRobot" 
+                                                          CompanionSize="46" 
+                                                          Grid.Column="0" 
+                                                          VerticalAlignment="Center" 
+                                                          Margin="0,0,16,0"/>
+
+                                    <!-- Status & Controls -->
+                                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                        <TextBlock x:Name="RobotStatusText" 
+                                                   Text="COMPANION • ACTIVE" 
+                                                   FontSize="10" 
+                                                   FontWeight="Bold" 
+                                                   Foreground="#00F2FE" 
+                                                   Margin="0,0,0,2"/>
+                                        <TextBlock x:Name="EventStatusText" 
+                                                   Text="BUS: READY • 0 EVENTS" 
+                                                   FontSize="8" 
+                                                   FontWeight="Medium" 
+                                                   Foreground="#94A3B8" 
+                                                   Margin="0,0,0,6"/>
+                                        <WrapPanel>
+                                            <Button Style="{StaticResource IslandActionButton}" Content="✨ Happy" Click="BtnExcited_Click" Margin="0,0,4,4"/>
+                                            <Button Style="{StaticResource IslandActionButton}" Content="❓ Confused" Click="BtnConfused_Click" Margin="0,0,4,4"/>
+                                            <Button Style="{StaticResource IslandActionButton}" Content="👋 Nod" Click="BtnNod_Click" Margin="0,0,4,4"/>
+                                        </WrapPanel>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                        </Grid>
+
                     </Grid>
                 </Grid>
             </Grid>

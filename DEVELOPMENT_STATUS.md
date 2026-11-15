@@ -196,6 +196,28 @@
   - Glowing antenna beacon node.
 - **Shiny Metallic Controls**: Brushed metallic gradients on transport buttons (`⏮`, `⏯`, `⏭`) and pill quick-action buttons with hover state glow.
 
+## Panoramic Top HUD Dashboard, Slide Modules & Fluid Motion Architecture
+
+### 1. Reshaped Panoramic Top HUD Bar
+- **Form Factor**: Re-architected expanded companion mode into a panoramic horizontal top HUD bar (`920px` wide, `118px` height for HUD, `330px` for workspaces).
+- **Three-Module Layout (Matching Reference Specification)**:
+  - **Left Module (Media & YouTube Music)**: Album cover art (60x60 rounded square), live bold track title, artist subtitle, inline transport controls (`⏮`, `▶`/`⏸`, `⏭`), track timeline seek bar with live elapsed and total duration (`00:41 ———— 03:04`), and direct `🎵 YTM` launch button.
+  - **Center Module (Date, Weekly Calendar & Large Clock)**: Large bold month display (`Apr` / `Nov`), 7-day live calendar strip with dynamic day names (`M T W THU F S S`) and day numbers, current day highlighted in a sky-blue pill badge (`THU 23` / `SUN 15`), weekends in coral red, large modern digital clock (`16:34`), and bottom subtle capsule handle.
+  - **Right Module (System Monitor & Hardware HUD + Volume)**: Live CPU percentage bar (cyan `#38BDF8`), RAM usage bar (emerald green `#22C55E` with `GB/GB` metrics), DISK capacity bar (warm orange `#F97316`), vertical volume capsule pill control with mute toggle, and quick access buttons (`🤖` Mascot, `⚙` Settings).
+
+### 2. Multi-View Slide Modules (Tabs & Workspaces)
+- **Slide 1 — 📊 HUD**: Panoramic 3-module dashboard providing instant system telemetry and media controls.
+- **Slide 2 — 📝 Quick Notes**: Local-first scratchpad editor with live character/word count, one-click clipboard copy (`📋 Copy Notes`) with visual feedback, clear button, and automatic local persistence to `%LOCALAPPDATA%\Nova\Storage\quick_notes.txt`.
+- **Slide 3 — ✅ To-Do List (Tasks)**: Fast task organizer with inline input box (press `Enter` or click `➕ Add Task`), checkable items with animated strikethrough, item deletion (`✕`), filter pills (`All`, `Active`, `Done`), clear completed, and persistence to `%LOCALAPPDATA%\Nova\Storage\todos.json`.
+- **Slide 4 — ⚡ Quick Tools**: Focus / Pomodoro session timer (`25:00`) with start/pause/reset controls, presets (`25m Focus`, `5m Break`, `15m Rest`), and one-click desktop app launchers (`🧮 Calculator`, `📝 Notepad`, `✂ Snipping Tool`, `⚙ Task Manager`, `🎵 YouTube Music`).
+- **Slide 5 — 🤖 Mascot Companion**: Interactive showcase of the 3D metallic companion mascot with personality reactions (`✨ Happy`, `❓ Confused`, `👋 Nod`) and EventEngine telemetry.
+
+### 3. Smooth Animations & Motion Design
+- **Fluid Morphing Transitions**: `PillBorder.Width` and `Height` interpolate with `CubicEase` over 240-300ms, smoothly expanding from the 210x42 compact pill to the 920x118 HUD bar, and dynamically expanding to 330px when sliding into workspace views.
+- **Slide Gliding & Fade**: Switching slides plays an animated horizontal glide (`TranslateTransform.X` from 24px to 0) combined with a soft opacity fade (0.0 to 1.0) over 200-220ms.
+- **Hardware Metric Glides**: CPU, RAM, and Disk progress bar widths animate fluidly with `DoubleAnimation` over 350ms, eliminating abrupt stat jumps.
+- **Dynamic Window Bounds Trimming**: Compact mode snaps window footprint to `260x70` on animation complete, preventing transparent desktop hit-test blocking while expanding to `960x380` for the full dashboard.
+
 ---
 
 ## Acceptance Criteria Checklist
