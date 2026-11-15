@@ -6,6 +6,7 @@ using System.Windows.Media.Animation;
 using System.Windows.Threading;
 using Nova.Core;
 using Nova.Events;
+using Nova.Media;
 using Nova.UI.Robot;
 
 namespace Nova.UI;
@@ -16,6 +17,7 @@ public partial class IslandWindow : Window
     private readonly DispatcherTimer _clockTimer;
     private readonly RobotController _robotController;
     private readonly EventEngine _eventEngine;
+    private readonly IMediaService _mediaService;
     private readonly List<IDisposable> _subscriptions = new();
     private bool _isManuallyPositioned = false;
     private bool _isTransitioning = false;
@@ -25,14 +27,16 @@ public partial class IslandWindow : Window
     public bool IsManuallyPositioned => _isManuallyPositioned;
     public RobotController RobotController => _robotController;
     public EventEngine EventEngine => _eventEngine;
+    public IMediaService MediaService => _mediaService;
 
-    public IslandWindow()
+    public IslandWindow(IMediaService? mediaService = null, EventEngine? eventEngine = null)
     {
         InitializeComponent();
 
+        _eventEngine = eventEngine ?? new EventEngine();
         _trayManager = new TrayManager(this);
         _robotController = new RobotController();
-        _eventEngine = new EventEngine();
+        _mediaService = mediaService ?? new WindowsMediaService(_eventEngine);
 
         // Low-frequency timer for clock & status updates (1 update per second)
         _clockTimer = new DispatcherTimer
@@ -44,7 +48,7 @@ public partial class IslandWindow : Window
         AppLogger.Info("IslandWindow initialized.");
     }
 
-    private void Window_Loaded(object sender, RoutedEventArgs e)
+    private async void Window_Loaded(object sender, RoutedEventArgs e)
     {
         var hwnd = new WindowInteropHelper(this).Handle;
         _trayManager.TrayContextMenu = (ContextMenu)Resources["IslandContextMenu"];
@@ -63,6 +67,17 @@ public partial class IslandWindow : Window
         // Start clock timer
         UpdateClock();
         _clockTimer.Start();
+
+        // Initialize media session monitoring
+        try
+        {
+            await _mediaService.InitializeAsync();
+            UpdateMediaUI(_mediaService.CurrentSnapshot);
+        }
+        catch (Exception ex)
+        {
+            AppLogger.Warning($"Failed to initialize media service in window: {ex.Message}");
+        }
 
         AppLogger.Info($"IslandWindow loaded. Initial position: Left={Left}, Top={Top}.");
     }
@@ -93,6 +108,20 @@ public partial class IslandWindow : Window
             }
         }));
 
+        // 4. Media event subscribers
+        _subscriptions.Add(_eventEngine.Subscribe(e =>
+        {
+            if (e.Category == EventCategory.Media && e.Payload is MediaSessionSnapshot snap)
+            {
+                UpdateMediaUI(snap);
+
+                if (e.EventType == "media.track_changed" || (e.EventType == "media.playback_changed" && snap.IsPlaying))
+                {
+                    _robotController.TriggerNodTestEvent();
+                }
+            }
+        }));
+
         AppLogger.Info($"EventEngine subscriptions established. Count: {_subscriptions.Count}.");
     }
 
@@ -103,9 +132,10 @@ public partial class IslandWindow : Window
 
     private void UpdateClock()
     {
-        ClockText.Text = DateTime.Now.ToString("HH:mm");
-        var workArea = ScreenHelper.GetWorkingArea(this);
-        MonitorInfoText.Text = $"{workArea.Width:F0}x{workArea.Height:F0} WorkArea";
+        if (ClockText != null)
+        {
+            ClockText.Text = DateTime.Now.ToString("HH:mm");
+        }
     }
 
     private void Window_MouseMove(object sender, MouseEventArgs e)
@@ -407,10 +437,176 @@ public partial class IslandWindow : Window
         _robotController.SetReducedMotion(item.IsChecked);
     }
 
+    public void UpdateMediaUI(MediaSessionSnapshot snapshot)
+    {
+        if (snapshot.HasActiveSession)
+        {
+            // Compact View
+            if (CompactMediaPanel != null && CompactDefaultPanel != null)
+            {
+                CompactDefaultPanel.Visibility = Visibility.Collapsed;
+                CompactMediaPanel.Visibility = Visibility.Visible;
+                CompactMediaText.Text = snapshot.TrackInfo.DisplayString;
+                CompactPlayPauseBtn.Content = snapshot.IsPlaying ? "⏸" : "▶";
+                CompactPlayPauseBtn.IsEnabled = snapshot.Capabilities.CanTogglePlayPause || snapshot.Capabilities.CanPlay || snapshot.Capabilities.CanPause;
+            }
+
+            // Expanded View
+            if (MediaTitleText != null)
+            {
+                MediaTitleText.Text = !string.IsNullOrWhiteSpace(snapshot.TrackInfo.Title) 
+                    ? snapshot.TrackInfo.Title 
+                    : "Active Audio Stream";
+            }
+
+            if (MediaArtistText != null)
+            {
+                var artistAlbum = !string.IsNullOrWhiteSpace(snapshot.TrackInfo.Artist)
+                    ? snapshot.TrackInfo.Artist
+                    : snapshot.SourceDisplayName;
+                if (!string.IsNullOrWhiteSpace(snapshot.TrackInfo.AlbumTitle))
+                {
+                    artistAlbum += $" • {snapshot.TrackInfo.AlbumTitle}";
+                }
+                MediaArtistText.Text = artistAlbum;
+            }
+
+            if (MediaBadgeText != null)
+            {
+                MediaBadgeText.Text = $"{snapshot.SourceDisplayName.ToUpperInvariant()} • {snapshot.PlaybackStatus.ToString().ToUpperInvariant()}";
+                MediaBadgeText.Foreground = snapshot.IsPlaying 
+                    ? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(56, 189, 248)) 
+                    : new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(148, 163, 184));
+            }
+
+            if (MediaSourceText != null)
+            {
+                MediaSourceText.Text = snapshot.SourceDisplayName;
+            }
+
+            // Artwork
+            if (MediaArtworkImage != null && MediaPlaceholderIcon != null)
+            {
+                if (snapshot.TrackInfo.HasArtwork)
+                {
+                    var bitmap = ImageHelper.CreateBitmapSourceFromBytes(snapshot.TrackInfo.ArtworkBytes);
+                    if (bitmap != null)
+                    {
+                        MediaArtworkImage.Source = bitmap;
+                        MediaArtworkImage.Visibility = Visibility.Visible;
+                        MediaPlaceholderIcon.Visibility = Visibility.Collapsed;
+                    }
+                    else
+                    {
+                        MediaArtworkImage.Visibility = Visibility.Collapsed;
+                        MediaPlaceholderIcon.Visibility = Visibility.Visible;
+                    }
+                }
+                else
+                {
+                    MediaArtworkImage.Visibility = Visibility.Collapsed;
+                    MediaPlaceholderIcon.Visibility = Visibility.Visible;
+                }
+            }
+
+            // Controls
+            if (MediaPlayPauseBtn != null)
+            {
+                MediaPlayPauseBtn.Content = snapshot.IsPlaying ? "⏸" : "▶";
+                MediaPlayPauseBtn.IsEnabled = snapshot.Capabilities.CanTogglePlayPause || snapshot.Capabilities.CanPlay || snapshot.Capabilities.CanPause;
+            }
+
+            if (MediaPrevBtn != null)
+            {
+                MediaPrevBtn.IsEnabled = snapshot.Capabilities.CanPrevious;
+            }
+
+            if (MediaNextBtn != null)
+            {
+                MediaNextBtn.IsEnabled = snapshot.Capabilities.CanNext;
+            }
+        }
+        else
+        {
+            // Inactive / No media session
+            if (CompactMediaPanel != null && CompactDefaultPanel != null)
+            {
+                CompactMediaPanel.Visibility = Visibility.Collapsed;
+                CompactDefaultPanel.Visibility = Visibility.Visible;
+            }
+
+            if (MediaTitleText != null)
+                MediaTitleText.Text = "No Media Playing";
+            if (MediaArtistText != null)
+                MediaArtistText.Text = "Awaiting audio session";
+            if (MediaBadgeText != null)
+            {
+                MediaBadgeText.Text = "MEDIA • STANDBY";
+                MediaBadgeText.Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(100, 116, 139));
+            }
+            if (MediaSourceText != null)
+                MediaSourceText.Text = "";
+
+            if (MediaArtworkImage != null && MediaPlaceholderIcon != null)
+            {
+                MediaArtworkImage.Source = null;
+                MediaArtworkImage.Visibility = Visibility.Collapsed;
+                MediaPlaceholderIcon.Visibility = Visibility.Visible;
+            }
+
+            if (MediaPlayPauseBtn != null)
+            {
+                MediaPlayPauseBtn.Content = "▶";
+                MediaPlayPauseBtn.IsEnabled = false;
+            }
+            if (MediaPrevBtn != null)
+                MediaPrevBtn.IsEnabled = false;
+            if (MediaNextBtn != null)
+                MediaNextBtn.IsEnabled = false;
+        }
+    }
+
+    private async void MediaPlayPause_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            await _mediaService.TryTogglePlayPauseAsync();
+        }
+        catch (Exception ex)
+        {
+            AppLogger.Warning($"MediaPlayPause_Click failed: {ex.Message}");
+        }
+    }
+
+    private async void MediaPrev_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            await _mediaService.TryPreviousAsync();
+        }
+        catch (Exception ex)
+        {
+            AppLogger.Warning($"MediaPrev_Click failed: {ex.Message}");
+        }
+    }
+
+    private async void MediaNext_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            await _mediaService.TryNextAsync();
+        }
+        catch (Exception ex)
+        {
+            AppLogger.Warning($"MediaNext_Click failed: {ex.Message}");
+        }
+    }
+
     private void Window_Closed(object sender, EventArgs e)
     {
         _clockTimer.Stop();
         _trayManager.Dispose();
+        _mediaService.Dispose();
 
         // Dispose all subscriptions and the engine
         foreach (var sub in _subscriptions)

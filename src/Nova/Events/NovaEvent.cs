@@ -98,5 +98,24 @@ public sealed record NovaEvent
             priority: priority,
             payload: payload);
     }
+
+    public static NovaEvent CreateMediaEvent(
+        string eventType,
+        string title,
+        string description = "",
+        object? payload = null,
+        EventPriority priority = EventPriority.Normal,
+        string? deduplicationKey = null)
+    {
+        return Create(
+            eventType: eventType,
+            source: "Nova.Media",
+            title: title,
+            description: description,
+            category: EventCategory.Media,
+            priority: priority,
+            payload: payload,
+            deduplicationKey: deduplicationKey);
+    }
 }
 

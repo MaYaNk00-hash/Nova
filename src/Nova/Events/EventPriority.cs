@@ -14,6 +14,7 @@ public enum EventCategory
     System,
     UserAction,
     Companion,
+    Media,
     Test
 }
 

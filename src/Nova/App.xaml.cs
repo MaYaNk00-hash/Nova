@@ -40,6 +40,24 @@ public partial class App : Application
         _islandWindow = new IslandWindow();
         _islandWindow.Show();
 
+        if (e.Args.Contains("--demo-media"))
+        {
+            _islandWindow.UpdateMediaUI(new Nova.Media.MediaSessionSnapshot
+            {
+                SourceAppId = "spotify.exe",
+                SourceDisplayName = "Spotify",
+                PlaybackStatus = Nova.Media.MediaPlaybackStatus.Playing,
+                HasActiveSession = true,
+                TrackInfo = new Nova.Media.MediaTrackInfo
+                {
+                    Title = "Midnight City",
+                    Artist = "M83",
+                    AlbumTitle = "Hurry Up, We're Dreaming"
+                },
+                Capabilities = Nova.Media.MediaCapabilities.All
+            });
+        }
+
         if (e.Args.Contains("--expanded"))
         {
             _islandWindow.TransitionTo(IslandState.Expanded);

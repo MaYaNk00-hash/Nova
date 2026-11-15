@@ -57,6 +57,41 @@
             </Style.Triggers>
         </Style>
 
+        <!-- Media Control button style -->
+        <Style x:Key="MediaControlButton" TargetType="Button">
+            <Setter Property="Background" Value="#1E2638"/>
+            <Setter Property="Foreground" Value="#E2E8F0"/>
+            <Setter Property="BorderBrush" Value="#2D3B52"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Width" Value="28"/>
+            <Setter Property="Height" Value="26"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" 
+                                BorderBrush="{TemplateBinding BorderBrush}" 
+                                BorderThickness="{TemplateBinding BorderThickness}" 
+                                CornerRadius="5">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#2A3750"/>
+                    <Setter Property="BorderBrush" Value="#38BDF8"/>
+                    <Setter Property="Foreground" Value="#38BDF8"/>
+                </Trigger>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Opacity" Value="0.35"/>
+                    <Setter Property="Cursor" Value="Arrow"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
         <!-- Icon button style -->
         <Style x:Key="IconButton" TargetType="Button">
             <Setter Property="Background" Value="Transparent"/>
@@ -152,8 +187,8 @@
                                           VerticalAlignment="Center" 
                                           Margin="0,0,8,0"/>
 
-                    <!-- Name & Status Badge -->
-                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <!-- Default Name & Status Badge -->
+                    <StackPanel x:Name="CompactDefaultPanel" Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
                         <TextBlock Text="NOVA" 
                                    FontWeight="Bold" 
                                    FontSize="12" 
@@ -170,6 +205,31 @@
                                        Foreground="#38BDF8"/>
                         </Border>
                     </StackPanel>
+
+                    <!-- Compact Media Bar (visible when media is active) -->
+                    <Grid x:Name="CompactMediaPanel" Grid.Column="1" VerticalAlignment="Center" Visibility="Collapsed" Margin="0,0,6,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock x:Name="CompactMediaText" 
+                                   Text="Track • Artist" 
+                                   FontSize="10.5" 
+                                   FontWeight="Medium" 
+                                   Foreground="#E2E8F0" 
+                                   TextTrimming="CharacterEllipsis" 
+                                   VerticalAlignment="Center"/>
+                        <Button x:Name="CompactPlayPauseBtn" 
+                                Grid.Column="1" 
+                                Style="{StaticResource IconButton}" 
+                                Content="▶" 
+                                Width="22" 
+                                Height="22" 
+                                FontSize="10" 
+                                ToolTip="Toggle Play/Pause" 
+                                Click="MediaPlayPause_Click" 
+                                Margin="4,0,0,0"/>
+                    </Grid>
 
                     <!-- Time Indicator -->
                     <TextBlock x:Name="ClockText" 
@@ -247,9 +307,9 @@
                     <!-- Content Cards -->
                     <Grid Grid.Row="1" Margin="0,0,0,10">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="1.2*"/>
-                            <ColumnDefinition Width="10"/>
-                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="1.15*"/>
+                            <ColumnDefinition Width="8"/>
+                            <ColumnDefinition Width="1.25*"/>
                         </Grid.ColumnDefinitions>
 
                         <!-- Card 1: Showcase Robot & Reaction Controls -->
@@ -258,19 +318,19 @@
                                 BorderBrush="#252D3D" 
                                 BorderThickness="1" 
                                 CornerRadius="8" 
-                                Padding="10">
+                                Padding="8">
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto"/>
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
 
-                                <!-- Showcase Robot (48px) -->
+                                <!-- Showcase Robot (42px) -->
                                 <robot:RobotCompanion x:Name="ExpandedRobot" 
-                                                      CompanionSize="48" 
+                                                      CompanionSize="42" 
                                                       Grid.Column="0" 
                                                       VerticalAlignment="Center" 
-                                                      Margin="0,0,10,0"/>
+                                                      Margin="0,0,8,0"/>
 
                                 <!-- Reaction Test Buttons -->
                                 <StackPanel Grid.Column="1" VerticalAlignment="Center">
@@ -279,55 +339,140 @@
                                                FontSize="8.5" 
                                                FontWeight="Bold" 
                                                Foreground="#38BDF8" 
-                                               Margin="0,0,0,2"/>
+                                               TextTrimming="CharacterEllipsis" 
+                                               Margin="0,0,0,1"/>
                                     <TextBlock x:Name="EventStatusText" 
                                                Text="BUS: READY • 0 EVENTS" 
-                                               FontSize="8" 
+                                               FontSize="7.5" 
                                                FontWeight="Medium" 
                                                Foreground="#94A3B8" 
-                                               Margin="0,0,0,5"/>
+                                               TextTrimming="CharacterEllipsis" 
+                                               Margin="0,0,0,4"/>
                                     <WrapPanel>
                                         <Button Style="{StaticResource IslandActionButton}" 
                                                 Content="✨ Happy" 
                                                 Click="BtnExcited_Click" 
-                                                Margin="0,0,4,4"/>
+                                                Margin="0,0,3,3"/>
                                         <Button Style="{StaticResource IslandActionButton}" 
                                                 Content="❓ Confused" 
                                                 Click="BtnConfused_Click" 
-                                                Margin="0,0,4,4"/>
+                                                Margin="0,0,3,3"/>
                                         <Button Style="{StaticResource IslandActionButton}" 
                                                 Content="👋 Nod" 
                                                 Click="BtnNod_Click" 
-                                                Margin="0,0,4,4"/>
+                                                Margin="0,0,3,3"/>
                                     </WrapPanel>
                                 </StackPanel>
                             </Grid>
                         </Border>
 
-                        <!-- Card 2: Quick Position & Monitor Control -->
+                        <!-- Card 2: Now Playing & Media Controls -->
                         <Border Grid.Column="2" 
                                 Background="#141822" 
                                 BorderBrush="#252D3D" 
                                 BorderThickness="1" 
                                 CornerRadius="8" 
                                 Padding="10">
-                            <StackPanel VerticalAlignment="Center">
-                                <TextBlock Text="POSITIONING" 
-                                           FontSize="8.5" 
-                                           FontWeight="Bold" 
-                                           Foreground="#A855F7" 
-                                           Margin="0,0,0,4"/>
-                                <TextBlock x:Name="MonitorInfoText" 
-                                           Text="Primary Monitor" 
-                                           FontSize="10.5" 
-                                           FontWeight="Medium" 
-                                           Foreground="#E2E8F0" 
-                                           Margin="0,0,0,6"/>
-                                <Button Style="{StaticResource IslandActionButton}" 
-                                        Content="Center to Top" 
-                                        Click="MenuResetPosition_Click" 
-                                        HorizontalAlignment="Left"/>
-                            </StackPanel>
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+
+                                <!-- Header: Badge & Source -->
+                                <Grid Grid.Row="0" Margin="0,0,0,5">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock x:Name="MediaBadgeText" 
+                                               Text="MEDIA • STANDBY" 
+                                               FontSize="8.5" 
+                                               FontWeight="Bold" 
+                                               Foreground="#10B981" 
+                                               VerticalAlignment="Center"/>
+                                    <TextBlock x:Name="MediaSourceText" 
+                                               Grid.Column="1" 
+                                               Text="" 
+                                               FontSize="8" 
+                                               FontWeight="Medium" 
+                                               Foreground="#64748B" 
+                                               VerticalAlignment="Center"/>
+                                </Grid>
+
+                                <!-- Track Metadata & Artwork -->
+                                <Grid Grid.Row="1" VerticalAlignment="Center" Margin="0,0,0,6">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="38"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <!-- Artwork or Icon Placeholder -->
+                                    <Border Grid.Column="0" 
+                                            Width="34" 
+                                            Height="34" 
+                                            CornerRadius="5" 
+                                            Background="#1E2638" 
+                                            BorderBrush="#2F3B52" 
+                                            BorderThickness="1" 
+                                            ClipToBounds="True" 
+                                            HorizontalAlignment="Left" 
+                                            VerticalAlignment="Center">
+                                        <Grid>
+                                            <TextBlock x:Name="MediaPlaceholderIcon" 
+                                                       Text="♫" 
+                                                       FontSize="16" 
+                                                       Foreground="#38BDF8" 
+                                                       HorizontalAlignment="Center" 
+                                                       VerticalAlignment="Center"/>
+                                            <Image x:Name="MediaArtworkImage" 
+                                                   Stretch="UniformToFill" 
+                                                   Visibility="Collapsed"/>
+                                        </Grid>
+                                    </Border>
+
+                                    <!-- Title & Artist -->
+                                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="8,0,0,0">
+                                        <TextBlock x:Name="MediaTitleText" 
+                                                   Text="No Media Playing" 
+                                                   FontSize="11" 
+                                                   FontWeight="SemiBold" 
+                                                   Foreground="#F8FAFC" 
+                                                   TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock x:Name="MediaArtistText" 
+                                                   Text="Awaiting audio session" 
+                                                   FontSize="9" 
+                                                   Foreground="#94A3B8" 
+                                                   TextTrimming="CharacterEllipsis" 
+                                                   Margin="0,2,0,0"/>
+                                    </StackPanel>
+                                </Grid>
+
+                                <!-- Playback Controls -->
+                                <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center">
+                                    <Button x:Name="MediaPrevBtn" 
+                                            Style="{StaticResource MediaControlButton}" 
+                                            Content="⏮" 
+                                            ToolTip="Previous Track" 
+                                            IsEnabled="False" 
+                                            Click="MediaPrev_Click" 
+                                            Margin="0,0,6,0"/>
+                                    <Button x:Name="MediaPlayPauseBtn" 
+                                            Style="{StaticResource MediaControlButton}" 
+                                            Content="▶" 
+                                            ToolTip="Play / Pause" 
+                                            IsEnabled="False" 
+                                            Click="MediaPlayPause_Click" 
+                                            Margin="0,0,6,0"/>
+                                    <Button x:Name="MediaNextBtn" 
+                                            Style="{StaticResource MediaControlButton}" 
+                                            Content="⏭" 
+                                            ToolTip="Next Track" 
+                                            IsEnabled="False" 
+                                            Click="MediaNext_Click"/>
+                                </StackPanel>
+                            </Grid>
                         </Border>
                     </Grid>
 
@@ -344,6 +489,11 @@
                                    VerticalAlignment="Center"/>
 
                         <StackPanel Grid.Column="1" Orientation="Horizontal">
+                            <Button Style="{StaticResource IslandActionButton}" 
+                                    Content="Center" 
+                                    ToolTip="Center to top of screen" 
+                                    Click="MenuResetPosition_Click" 
+                                    Margin="0,0,6,0"/>
                             <Button Style="{StaticResource IslandActionButton}" 
                                     Content="Compact" 
                                     Click="CompactButton_Click" 
