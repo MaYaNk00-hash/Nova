@@ -75,3 +75,4 @@ dotnet run --project src/Nova/Nova.csproj -- --smoke-test
 Application logs are stored locally at:
 - `%LOCALAPPDATA%\Nova\Logs\nova.log`
 *(Can be overridden with the `NOVA_APPDATA_DIR` environment variable).*
+

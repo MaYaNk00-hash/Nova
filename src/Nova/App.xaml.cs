@@ -1,7 +1,8 @@
-﻿using System.Linq;
+using System.Linq;
 using System.Windows;
 using System.Windows.Threading;
 using Nova.Core;
+using Nova.UI;
 
 namespace Nova;
 
@@ -10,6 +11,8 @@ namespace Nova;
 /// </summary>
 public partial class App : Application
 {
+    private IslandWindow? _islandWindow;
+
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
@@ -24,11 +27,22 @@ public partial class App : Application
         // Support headless/smoke-test validation
         if (e.Args.Contains("--smoke-test"))
         {
-            AppLogger.Info("Smoke test flag detected: validating window lifecycle and exiting cleanly.");
-            var testWindow = new MainWindow();
+            AppLogger.Info("Smoke test flag detected: validating IslandWindow lifecycle and exiting cleanly.");
+            var testWindow = new IslandWindow();
             testWindow.Show();
+            testWindow.TransitionTo(IslandState.Expanded);
+            testWindow.TransitionTo(IslandState.Compact);
             testWindow.Close();
             Shutdown(0);
+            return;
+        }
+
+        _islandWindow = new IslandWindow();
+        _islandWindow.Show();
+
+        if (e.Args.Contains("--expanded"))
+        {
+            _islandWindow.TransitionTo(IslandState.Expanded);
         }
     }
 

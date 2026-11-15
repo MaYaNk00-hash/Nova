@@ -1,0 +1,138 @@
+using System.Windows;
+using System.Windows.Media.Animation;
+using Nova.Core;
+using Nova.UI;
+
+namespace Nova.Tests;
+
+public class IslandWindowTests
+{
+    [Fact("Verify IslandDimensions constants")]
+    public void IslandDimensions_ValuesAreSensible()
+    {
+        Assert.True(IslandDimensions.CompactWidth > 150 && IslandDimensions.CompactWidth < 300, "CompactWidth should be reasonable pill width.");
+        Assert.True(IslandDimensions.CompactHeight > 30 && IslandDimensions.CompactHeight < 60, "CompactHeight should be sleek pill height.");
+        Assert.True(IslandDimensions.ExpandedWidth > IslandDimensions.CompactWidth, "Expanded width must be larger than compact width.");
+        Assert.True(IslandDimensions.ExpandedHeight > IslandDimensions.CompactHeight, "Expanded height must be larger than compact height.");
+        Assert.Equal(12.0, IslandDimensions.TopMargin);
+    }
+
+    [Fact("Verify ScreenHelper top-center calculation")]
+    public void ScreenHelper_CalculateTopCenter_CalculatesCorrectCoordinates()
+    {
+        var workArea = new RectDip(0, 0, 1920, 1080);
+        double windowWidth = 460;
+        double marginTop = 12;
+
+        var point = ScreenHelper.CalculateTopCenter(workArea, windowWidth, marginTop);
+
+        Assert.Equal(730.0, point.X, "Window X should be centered (1920 - 460) / 2 = 730.");
+        Assert.Equal(12.0, point.Y, "Window Y should match marginTop.");
+    }
+
+    [Fact("Verify ScreenHelper clamps coordinates within work area")]
+    public void ScreenHelper_ClampToWorkArea_PreventsOffscreenPlacement()
+    {
+        var workArea = new RectDip(0, 0, 1920, 1080);
+        double width = 460;
+        double height = 250;
+
+        // Off the left edge
+        var clamped1 = ScreenHelper.ClampToWorkArea(workArea, -100, 50, width, height);
+        Assert.Equal(0.0, clamped1.X, "Left should be clamped to 0.");
+        Assert.Equal(50.0, clamped1.Y);
+
+        // Off the right edge
+        var clamped2 = ScreenHelper.ClampToWorkArea(workArea, 2000, 50, width, height);
+        Assert.Equal(1460.0, clamped2.X, "Right should be clamped to workArea.Right - width (1920 - 460 = 1460).");
+
+        // Off the bottom edge
+        var clamped3 = ScreenHelper.ClampToWorkArea(workArea, 500, 1200, width, height);
+        Assert.Equal(500.0, clamped3.X);
+        Assert.Equal(830.0, clamped3.Y, "Bottom should be clamped to workArea.Bottom - height (1080 - 250 = 830).");
+    }
+
+    [Fact("Verify IslandWindow instantiation and default properties")]
+    public void IslandWindow_InstantiatesWithDefaultProperties()
+    {
+        Exception? threadException = null;
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                var window = new IslandWindow();
+                Assert.NotNull(window);
+                Assert.Equal(WindowStyle.None, window.WindowStyle);
+                Assert.True(window.AllowsTransparency, "AllowsTransparency must be true for floating pill.");
+                Assert.False(window.ShowInTaskbar, "ShowInTaskbar must be false for companion island.");
+                Assert.True(window.Topmost, "Window should be Topmost by default.");
+                Assert.Equal(IslandState.Compact, window.CurrentState);
+                Assert.False(window.IsManuallyPositioned, "Should not be manually positioned initially.");
+                window.Close();
+            }
+            catch (Exception ex)
+            {
+                threadException = ex;
+            }
+        });
+
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        thread.Join(5000);
+
+        if (threadException != null)
+        {
+            throw new InvalidOperationException($"STA thread failed: {threadException.Message}", threadException);
+        }
+    }
+
+    [Fact("Verify IslandWindow state transitions")]
+    public void IslandWindow_StateTransitions_UpdateStateCorrectly()
+    {
+        Exception? threadException = null;
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                var window = new IslandWindow();
+
+                Assert.Equal(IslandState.Compact, window.CurrentState);
+
+                window.TransitionTo(IslandState.Expanded);
+                Assert.Equal(IslandState.Expanded, window.CurrentState);
+
+                window.TransitionTo(IslandState.Compact);
+                Assert.Equal(IslandState.Compact, window.CurrentState);
+
+                window.ToggleAlwaysOnTop();
+                Assert.False(window.Topmost, "Always on top should toggle to false.");
+                window.ToggleAlwaysOnTop();
+                Assert.True(window.Topmost, "Always on top should toggle back to true.");
+
+                window.Close();
+            }
+            catch (Exception ex)
+            {
+                threadException = ex;
+            }
+        });
+
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        thread.Join(5000);
+
+        if (threadException != null)
+        {
+            throw new InvalidOperationException($"STA thread failed: {threadException.Message}", threadException);
+        }
+    }
+
+    [Fact("Verify CornerRadiusAnimation interpolates values")]
+    public void CornerRadiusAnimation_InterpolatesValues()
+    {
+        var anim = new CornerRadiusAnimation(new CornerRadius(10), new CornerRadius(30), new Duration(TimeSpan.FromSeconds(1)));
+        Assert.Equal(typeof(CornerRadius), anim.TargetPropertyType);
+        Assert.Equal(new CornerRadius(10), anim.From);
+        Assert.Equal(new CornerRadius(30), anim.To);
+    }
+}

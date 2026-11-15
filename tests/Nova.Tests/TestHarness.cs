@@ -118,3 +118,4 @@ public static class SimpleTestRunner
         return failed == 0 ? 0 : 1;
     }
 }
+
