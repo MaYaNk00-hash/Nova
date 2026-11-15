@@ -212,5 +212,74 @@ public class IslandWindowTests
             throw new InvalidOperationException($"STA thread failed: {threadException.Message}", threadException);
         }
     }
+
+    [Fact("Verify IslandWindow Notification UI updates dynamically when notifications arrive and dismiss")]
+    public void IslandWindow_NotificationUI_UpdatesOnNotificationEvents()
+    {
+        Exception? threadException = null;
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                using var engine = new Events.EventEngine(startWorker: false);
+                using var mockMedia = new Media.MockMediaService(engine);
+                using var mockNotif = new Notifications.MockNotificationService(engine);
+                var window = new IslandWindow(mockMedia, mockNotif, engine);
+
+                // Initial state without notifications:
+                Assert.Equal(Visibility.Collapsed, window.CompactNotificationPanel.Visibility);
+                Assert.Equal(Visibility.Visible, window.CompactDefaultPanel.Visibility);
+                Assert.Equal(Visibility.Collapsed, window.ExpandedNotificationBanner.Visibility);
+
+                // 1. Post notification
+                var testNotif = new Notifications.NovaNotification
+                {
+                    Id = "ui-test-1",
+                    SourceDisplayName = "Slack",
+                    Title = "Meeting Reminder",
+                    Message = "Design sync in 5 minutes",
+                    Priority = Events.EventPriority.High
+                };
+                mockNotif.PostNotification(testNotif);
+                window.UpdateNotificationUI();
+
+                // Compact view shows notification banner
+                Assert.Equal(Visibility.Visible, window.CompactNotificationPanel.Visibility);
+                Assert.Equal(Visibility.Collapsed, window.CompactDefaultPanel.Visibility);
+                Assert.Equal(Visibility.Collapsed, window.CompactMediaPanel.Visibility);
+                Assert.Equal("Slack: Meeting Reminder", window.CompactNotificationText.Text);
+
+                // Expanded view shows amber notification banner
+                Assert.Equal(Visibility.Visible, window.ExpandedNotificationBanner.Visibility);
+                Assert.Equal("SLACK", window.NotificationSourceBadge.Text);
+                Assert.Equal("Meeting Reminder", window.NotificationTitleText.Text);
+                Assert.Equal("Design sync in 5 minutes", window.NotificationMessageText.Text);
+
+                // 2. Dismiss notification
+                mockNotif.TryDismissAsync(testNotif.Id).GetAwaiter().GetResult();
+                window.UpdateNotificationUI();
+
+                // Reverts to default state
+                Assert.Equal(Visibility.Collapsed, window.CompactNotificationPanel.Visibility);
+                Assert.Equal(Visibility.Visible, window.CompactDefaultPanel.Visibility);
+                Assert.Equal(Visibility.Collapsed, window.ExpandedNotificationBanner.Visibility);
+
+                window.Close();
+            }
+            catch (Exception ex)
+            {
+                threadException = ex;
+            }
+        });
+
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        thread.Join(5000);
+
+        if (threadException != null)
+        {
+            throw new InvalidOperationException($"STA thread failed: {threadException.Message}", threadException);
+        }
+    }
 }
 

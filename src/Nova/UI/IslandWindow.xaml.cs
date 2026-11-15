@@ -7,6 +7,7 @@ using System.Windows.Threading;
 using Nova.Core;
 using Nova.Events;
 using Nova.Media;
+using Nova.Notifications;
 using Nova.UI.Robot;
 
 namespace Nova.UI;
@@ -18,6 +19,7 @@ public partial class IslandWindow : Window
     private readonly RobotController _robotController;
     private readonly EventEngine _eventEngine;
     private readonly IMediaService _mediaService;
+    private readonly INotificationService _notificationService;
     private readonly List<IDisposable> _subscriptions = new();
     private bool _isManuallyPositioned = false;
     private bool _isTransitioning = false;
@@ -28,8 +30,12 @@ public partial class IslandWindow : Window
     public RobotController RobotController => _robotController;
     public EventEngine EventEngine => _eventEngine;
     public IMediaService MediaService => _mediaService;
+    public INotificationService NotificationService => _notificationService;
 
-    public IslandWindow(IMediaService? mediaService = null, EventEngine? eventEngine = null)
+    public IslandWindow(
+        IMediaService? mediaService = null, 
+        INotificationService? notificationService = null, 
+        EventEngine? eventEngine = null)
     {
         InitializeComponent();
 
@@ -37,6 +43,7 @@ public partial class IslandWindow : Window
         _trayManager = new TrayManager(this);
         _robotController = new RobotController();
         _mediaService = mediaService ?? new WindowsMediaService(_eventEngine);
+        _notificationService = notificationService ?? new WindowsNotificationService(_eventEngine);
 
         // Low-frequency timer for clock & status updates (1 update per second)
         _clockTimer = new DispatcherTimer
@@ -46,6 +53,11 @@ public partial class IslandWindow : Window
         _clockTimer.Tick += ClockTimer_Tick;
 
         AppLogger.Info("IslandWindow initialized.");
+    }
+
+    public IslandWindow(IMediaService? mediaService, EventEngine? eventEngine)
+        : this(mediaService, null, eventEngine)
+    {
     }
 
     private async void Window_Loaded(object sender, RoutedEventArgs e)
@@ -77,6 +89,17 @@ public partial class IslandWindow : Window
         catch (Exception ex)
         {
             AppLogger.Warning($"Failed to initialize media service in window: {ex.Message}");
+        }
+
+        // Initialize notification service
+        try
+        {
+            await _notificationService.InitializeAsync();
+            UpdateNotificationUI();
+        }
+        catch (Exception ex)
+        {
+            AppLogger.Warning($"Failed to initialize notification service in window: {ex.Message}");
         }
 
         AppLogger.Info($"IslandWindow loaded. Initial position: Left={Left}, Top={Top}.");
@@ -122,12 +145,35 @@ public partial class IslandWindow : Window
             }
         }));
 
+        // 5. Notification event subscribers
+        _subscriptions.Add(_eventEngine.Subscribe(e =>
+        {
+            if (e.Category == EventCategory.Notification)
+            {
+                UpdateNotificationUI();
+
+                if (e.EventType == "notification.arrived")
+                {
+                    if (e.Priority >= EventPriority.High)
+                    {
+                        _robotController.TriggerExcitedTestEvent();
+                    }
+                    else
+                    {
+                        _robotController.TriggerNodTestEvent();
+                    }
+                }
+            }
+        }));
+
         AppLogger.Info($"EventEngine subscriptions established. Count: {_subscriptions.Count}.");
     }
 
     private void ClockTimer_Tick(object? sender, EventArgs e)
     {
         UpdateClock();
+        _notificationService.PruneExpired();
+        UpdateNotificationUI();
     }
 
     private void UpdateClock()
@@ -602,11 +648,95 @@ public partial class IslandWindow : Window
         }
     }
 
+    public void UpdateNotificationUI()
+    {
+        var current = _notificationService.CurrentNotification;
+
+        if (current != null)
+        {
+            // Compact View: Notification has high visual urgency
+            if (CompactNotificationPanel != null && CompactMediaPanel != null && CompactDefaultPanel != null)
+            {
+                CompactDefaultPanel.Visibility = Visibility.Collapsed;
+                CompactMediaPanel.Visibility = Visibility.Collapsed;
+                CompactNotificationPanel.Visibility = Visibility.Visible;
+                CompactNotificationText.Text = current.CompactSummary;
+            }
+
+            // Expanded View: Notification Banner
+            if (ExpandedNotificationBanner != null)
+            {
+                ExpandedNotificationBanner.Visibility = Visibility.Visible;
+                if (NotificationSourceBadge != null)
+                    NotificationSourceBadge.Text = current.SourceDisplayName.ToUpperInvariant();
+                if (NotificationTitleText != null)
+                    NotificationTitleText.Text = current.Title;
+                if (NotificationMessageText != null)
+                    NotificationMessageText.Text = current.Message;
+            }
+        }
+        else
+        {
+            // No active notification: revert to media or default
+            if (CompactNotificationPanel != null && CompactMediaPanel != null && CompactDefaultPanel != null)
+            {
+                CompactNotificationPanel.Visibility = Visibility.Collapsed;
+
+                if (_mediaService.CurrentSnapshot.HasActiveSession)
+                {
+                    CompactMediaPanel.Visibility = Visibility.Visible;
+                    CompactDefaultPanel.Visibility = Visibility.Collapsed;
+                }
+                else
+                {
+                    CompactMediaPanel.Visibility = Visibility.Collapsed;
+                    CompactDefaultPanel.Visibility = Visibility.Visible;
+                }
+            }
+
+            if (ExpandedNotificationBanner != null)
+            {
+                ExpandedNotificationBanner.Visibility = Visibility.Collapsed;
+            }
+        }
+    }
+
+    private async void DismissCurrentNotification_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var current = _notificationService.CurrentNotification;
+            if (current != null)
+            {
+                await _notificationService.TryDismissAsync(current.Id);
+                UpdateNotificationUI();
+            }
+        }
+        catch (Exception ex)
+        {
+            AppLogger.Warning($"DismissCurrentNotification_Click failed: {ex.Message}");
+        }
+    }
+
+    private async void ClearAllNotifications_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            await _notificationService.ClearAllAsync();
+            UpdateNotificationUI();
+        }
+        catch (Exception ex)
+        {
+            AppLogger.Warning($"ClearAllNotifications_Click failed: {ex.Message}");
+        }
+    }
+
     private void Window_Closed(object sender, EventArgs e)
     {
         _clockTimer.Stop();
         _trayManager.Dispose();
         _mediaService.Dispose();
+        _notificationService.Dispose();
 
         // Dispose all subscriptions and the engine
         foreach (var sub in _subscriptions)

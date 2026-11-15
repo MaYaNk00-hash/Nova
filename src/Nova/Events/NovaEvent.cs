@@ -117,5 +117,26 @@ public sealed record NovaEvent
             payload: payload,
             deduplicationKey: deduplicationKey);
     }
+
+    public static NovaEvent CreateNotificationEvent(
+        string eventType,
+        string title,
+        string description = "",
+        object? payload = null,
+        EventPriority priority = EventPriority.Normal,
+        TimeSpan? timeToLive = null,
+        string? deduplicationKey = null)
+    {
+        return Create(
+            eventType: eventType,
+            source: "Nova.Notification",
+            title: title,
+            description: description,
+            category: EventCategory.Notification,
+            priority: priority,
+            payload: payload,
+            timeToLive: timeToLive,
+            deduplicationKey: deduplicationKey);
+    }
 }
 

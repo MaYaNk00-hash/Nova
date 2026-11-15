@@ -13,8 +13,8 @@
         ShowInTaskbar="False"
         Topmost="True"
         ResizeMode="NoResize"
-        Width="460"
-        Height="250"
+        Width="480"
+        Height="290"
         MouseMove="Window_MouseMove"
         MouseLeftButtonDown="Window_MouseLeftButtonDown"
         MouseRightButtonUp="Window_MouseRightButtonUp"
@@ -231,6 +231,34 @@
                                 Margin="4,0,0,0"/>
                     </Grid>
 
+                    <!-- Compact Notification Bar (highest priority, visible when notification arrives) -->
+                    <Grid x:Name="CompactNotificationPanel" Grid.Column="1" VerticalAlignment="Center" Visibility="Collapsed" Margin="0,0,6,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="🔔" FontSize="10" Foreground="#F59E0B" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                        <TextBlock x:Name="CompactNotificationText" 
+                                   Grid.Column="1" 
+                                   Text="Notification alert" 
+                                   FontSize="10" 
+                                   FontWeight="Medium" 
+                                   Foreground="#F8FAFC" 
+                                   TextTrimming="CharacterEllipsis" 
+                                   VerticalAlignment="Center"/>
+                        <Button x:Name="CompactDismissNotificationBtn" 
+                                Grid.Column="2" 
+                                Style="{StaticResource IconButton}" 
+                                Content="✕" 
+                                Width="18" 
+                                Height="18" 
+                                FontSize="8.5" 
+                                ToolTip="Dismiss Notification" 
+                                Click="DismissCurrentNotification_Click" 
+                                Margin="4,0,0,0"/>
+                    </Grid>
+
                     <!-- Time Indicator -->
                     <TextBlock x:Name="ClockText" 
                                Grid.Column="2" 
@@ -256,12 +284,13 @@
                       Margin="16,12,16,12">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
                     <!-- Header Row -->
-                    <Grid Grid.Row="0" Margin="0,0,0,10">
+                    <Grid Grid.Row="0" Margin="0,0,0,8">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
@@ -304,8 +333,44 @@
                         </StackPanel>
                     </Grid>
 
-                    <!-- Content Cards -->
-                    <Grid Grid.Row="1" Margin="0,0,0,10">
+                    <!-- Row 1: Expandable Notification Banner (visible when active notification exists) -->
+                    <Border x:Name="ExpandedNotificationBanner" 
+                            Grid.Row="1" 
+                            Background="#181D29" 
+                            BorderBrush="#D97706" 
+                            BorderThickness="1" 
+                            CornerRadius="6" 
+                            Padding="8,5" 
+                            Margin="0,0,0,8" 
+                            Visibility="Collapsed">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock Text="🔔" FontSize="12" Foreground="#F59E0B" VerticalAlignment="Center" Margin="0,0,6,0"/>
+
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <StackPanel Orientation="Horizontal">
+                                    <Border Background="#2B2110" CornerRadius="3" Padding="4,1" Margin="0,0,6,0">
+                                        <TextBlock x:Name="NotificationSourceBadge" Text="SYSTEM" FontSize="7.5" FontWeight="Bold" Foreground="#F59E0B"/>
+                                    </Border>
+                                    <TextBlock x:Name="NotificationTitleText" Text="Notification" FontSize="9.5" FontWeight="SemiBold" Foreground="#F8FAFC" TextTrimming="CharacterEllipsis"/>
+                                </StackPanel>
+                                <TextBlock x:Name="NotificationMessageText" Text="Notification details" FontSize="8.5" Foreground="#94A3B8" TextTrimming="CharacterEllipsis" Margin="0,1,0,0"/>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Margin="6,0,0,0">
+                                <Button Style="{StaticResource IslandActionButton}" Content="✕ Dismiss" ToolTip="Dismiss Notification" Click="DismissCurrentNotification_Click" Padding="5,2" FontSize="8.5" Margin="0,0,4,0"/>
+                                <Button Style="{StaticResource IslandActionButton}" Content="Clear All" ToolTip="Clear All Notifications" Click="ClearAllNotifications_Click" Padding="5,2" FontSize="8.5"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <!-- Row 2: Content Cards -->
+                    <Grid Grid.Row="2" Margin="0,0,0,10">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="1.15*"/>
                             <ColumnDefinition Width="8"/>
@@ -477,7 +542,7 @@
                     </Grid>
 
                     <!-- Footer Controls -->
-                    <Grid Grid.Row="2">
+                    <Grid Grid.Row="3">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>

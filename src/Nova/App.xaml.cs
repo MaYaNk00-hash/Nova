@@ -58,6 +58,21 @@ public partial class App : Application
             });
         }
 
+        if (e.Args.Contains("--demo-notification"))
+        {
+            _islandWindow.NotificationService.PostNotification(new Nova.Notifications.NovaNotification
+            {
+                Id = "demo-notif-1",
+                SourceAppId = "Slack.exe",
+                SourceDisplayName = "Slack",
+                Title = "Design Review",
+                Message = "Sarah requested feedback on Nova Island mockups",
+                Priority = Nova.Events.EventPriority.High,
+                Timestamp = DateTimeOffset.UtcNow
+            });
+            _islandWindow.UpdateNotificationUI();
+        }
+
         if (e.Args.Contains("--expanded"))
         {
             _islandWindow.TransitionTo(IslandState.Expanded);

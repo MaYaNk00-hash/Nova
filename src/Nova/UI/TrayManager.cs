@@ -20,6 +20,12 @@ public sealed class TrayManager : IDisposable
     private const uint NIF_MESSAGE = 0x00000001;
     private const uint NIF_ICON = 0x00000002;
     private const uint NIF_TIP = 0x00000004;
+    private const uint NIF_INFO = 0x00000010;
+
+    public const uint NIIF_NONE = 0x00000000;
+    public const uint NIIF_INFO = 0x00000001;
+    public const uint NIIF_WARNING = 0x00000002;
+    public const uint NIIF_ERROR = 0x00000003;
 
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
     private struct NOTIFYICONDATAW
@@ -121,6 +127,28 @@ public sealed class TrayManager : IDisposable
         {
             AppLogger.Error("Failed to create tray icon", ex);
         }
+    }
+
+    /// <summary>
+    /// Displays a native Windows notification balloon / toast via Shell_NotifyIconW with NIF_INFO.
+    /// In Windows 10/11, this natively integrates into the Windows Action Center.
+    /// </summary>
+    public bool ShowBalloonNotification(string title, string message, uint infoFlags = NIIF_INFO)
+    {
+        if (_hwnd == IntPtr.Zero || !_isIconAdded) return false;
+
+        var nid = new NOTIFYICONDATAW
+        {
+            cbSize = (uint)Marshal.SizeOf<NOTIFYICONDATAW>(),
+            hWnd = _hwnd,
+            uID = 1001,
+            uFlags = NIF_INFO,
+            szInfoTitle = title.Length > 63 ? title.Substring(0, 63) : title,
+            szInfo = message.Length > 255 ? message.Substring(0, 255) : message,
+            dwInfoFlags = infoFlags
+        };
+
+        return Shell_NotifyIconW(NIM_MODIFY, ref nid);
     }
 
     private static IntPtr CreateNativeOrbIcon()

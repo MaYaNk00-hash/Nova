@@ -13,8 +13,8 @@ public static class IslandDimensions
     public const double CompactHeight = 42.0;
     public const double CompactCornerRadius = 21.0;
 
-    public const double ExpandedWidth = 420.0;
-    public const double ExpandedHeight = 210.0;
+    public const double ExpandedWidth = 440.0;
+    public const double ExpandedHeight = 250.0;
     public const double ExpandedCornerRadius = 24.0;
 
     public const double TopMargin = 12.0;
