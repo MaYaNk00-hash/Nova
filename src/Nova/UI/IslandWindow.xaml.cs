@@ -661,6 +661,10 @@ public partial class IslandWindow : Window
                 CompactMediaPanel.Visibility = Visibility.Collapsed;
                 CompactNotificationPanel.Visibility = Visibility.Visible;
                 CompactNotificationText.Text = current.CompactSummary;
+                if (CompactDismissNotificationBtn != null)
+                {
+                    CompactDismissNotificationBtn.ToolTip = current.DismissTooltip;
+                }
             }
 
             // Expanded View: Notification Banner
@@ -673,6 +677,17 @@ public partial class IslandWindow : Window
                     NotificationTitleText.Text = current.Title;
                 if (NotificationMessageText != null)
                     NotificationMessageText.Text = current.Message;
+                if (ExpandedDismissNotificationBtn != null)
+                {
+                    ExpandedDismissNotificationBtn.Content = current.CanDismissFromActionCenter ? "✕ Dismiss" : "✕ Clear";
+                    ExpandedDismissNotificationBtn.ToolTip = current.DismissTooltip;
+                }
+                if (ExpandedClearAllNotificationsBtn != null)
+                {
+                    ExpandedClearAllNotificationsBtn.ToolTip = _notificationService.CanDismissNativeNotifications
+                        ? "Clear all notifications from NOVA Island and native Windows Action Center"
+                        : "Clear all notifications from NOVA Island queue";
+                }
             }
         }
         else

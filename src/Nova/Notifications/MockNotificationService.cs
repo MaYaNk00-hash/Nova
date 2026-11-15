@@ -18,6 +18,17 @@ public sealed class MockNotificationService : INotificationService
 
     public NotificationAccessStatus WindowsAccessStatus { get; set; } = NotificationAccessStatus.Allowed;
 
+    public bool IsExternalCaptureAvailable => WindowsAccessStatus == NotificationAccessStatus.Allowed;
+    public bool CanDismissNativeNotifications => WindowsAccessStatus == NotificationAccessStatus.Allowed;
+
+    public string AccessStatusExplanation => WindowsAccessStatus switch
+    {
+        NotificationAccessStatus.Allowed => "External notification capture active (Mock/Packaged mode).",
+        NotificationAccessStatus.Denied => "Windows notification capture Denied: Unpackaged desktop process lacks Package Identity and userNotificationListener capability.",
+        NotificationAccessStatus.NotSupported => "UserNotificationListener is not supported on this platform.",
+        _ => "Windows notification access status is unspecified."
+    };
+
     public event EventHandler<NovaNotification>? NotificationArrived;
     public event EventHandler<string>? NotificationDismissed;
 

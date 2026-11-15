@@ -363,8 +363,8 @@
                             </StackPanel>
 
                             <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Margin="6,0,0,0">
-                                <Button Style="{StaticResource IslandActionButton}" Content="✕ Dismiss" ToolTip="Dismiss Notification" Click="DismissCurrentNotification_Click" Padding="5,2" FontSize="8.5" Margin="0,0,4,0"/>
-                                <Button Style="{StaticResource IslandActionButton}" Content="Clear All" ToolTip="Clear All Notifications" Click="ClearAllNotifications_Click" Padding="5,2" FontSize="8.5"/>
+                                <Button x:Name="ExpandedDismissNotificationBtn" Style="{StaticResource IslandActionButton}" Content="✕ Clear" ToolTip="Clear from NOVA Island" Click="DismissCurrentNotification_Click" Padding="5,2" FontSize="8.5" Margin="0,0,4,0"/>
+                                <Button x:Name="ExpandedClearAllNotificationsBtn" Style="{StaticResource IslandActionButton}" Content="Clear All" ToolTip="Clear all from NOVA Island" Click="ClearAllNotifications_Click" Padding="5,2" FontSize="8.5"/>
                             </StackPanel>
                         </Grid>
                     </Border>

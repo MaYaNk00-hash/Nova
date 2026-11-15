@@ -36,6 +36,12 @@ public static class Assert
             throw new InvalidOperationException(message ?? "Assert.NotNull failed: Expected non-null value.");
     }
 
+    public static void Contains(string expectedSubstring, string? actualString, string? message = null)
+    {
+        if (actualString == null || !actualString.Contains(expectedSubstring, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException(message ?? $"Assert.Contains failed: Expected substring '{expectedSubstring}' not found in '{actualString}'.");
+    }
+
     public static void Throws<TException>(Action action, string? message = null) where TException : Exception
     {
         try

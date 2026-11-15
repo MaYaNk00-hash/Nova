@@ -9,7 +9,7 @@
 | **Phase 2** | **NOVA Robotic Companion** | **COMPLETED** |
 | **Phase 3** | **Core Event Engine** | **COMPLETED & APPROVED** |
 | **Phase 4** | **Windows Media Integration** | **COMPLETED & APPROVED** |
-| **Phase 5** | **Windows Notifications** | **COMPLETED — PENDING APPROVAL** |
+| **Phase 5** | **Windows Notifications** | **CORRECTIONS COMPLETE — PENDING APPROVAL** |
 | Phase 6 | System Monitoring | Pending |
 | Phase 7 | Application Awareness and Quick Actions | Pending |
 | Phase 8 | Dashboard and Settings | Pending |
@@ -106,66 +106,85 @@
 
 ---
 
-## Phase 5 Windows Notification Integration Summary
+## Phase 5 Windows Notification Integration Summary & Corrections
 
-### 1. Windows Notification Architecture & Privacy Investigation
+### 1. Windows Notification Architecture & Real Access Requirements Investigation
 - **Investigated Native APIs**:
   - `Windows.UI.Notifications.Management.UserNotificationListener`: The official modern Windows API to read and manage toast notifications across the system.
-  - `Shell_NotifyIconW` with `NIF_INFO` / `NIIF_INFO`: Native Win32 Action Center notification dispatch.
-- **Documented Limitations & Privacy Boundary**:
-  - In Windows 10/11, access to `UserNotificationListener.Current` is strictly gated by the Windows OS privacy subsystem (`Settings -> Privacy & Security -> Notifications`).
-  - For unpackaged desktop applications without prior user authorization, `GetAccessStatus()` returns `Denied` or `Unspecified`.
-  - Windows does not grant universal, unfettered access to other applications' private notification text to arbitrary desktop apps without explicit user permission.
-  - **Honest Compliance**: NOVA strictly respects this OS security boundary. It requests access via `RequestAccessAsync()` without bypassing or spoofing security tokens, logs privacy state, and gracefully manages local system, companion, and application notifications.
+- **Empirical Security Boundary Findings**:
+  - In Windows 10/11, `UserNotificationListener` is governed strictly by the Windows OS Security and Privacy model.
+  - Windows requires **Package Identity** and the restricted capability `<uap3:Capability Name="userNotificationListener" />` in an `AppxManifest.xml` to allow access.
+  - For standard unpackaged desktop applications (`.exe`), `UserNotificationListener.Current.GetAccessStatus()` and `RequestAccessAsync()` return **`Denied`** unconditionally by Windows OS design. The OS suppresses consent dialogs when called from an unpackaged token.
+  - Sideloading a sparse package or MSIX package with restricted capabilities requires administrative elevation to install signing certificates into the machine-wide `Cert:\LocalMachine\TrustedPeople` store (`0x80070005 ERROR_ACCESS_DENIED` encountered for standard user tokens).
+- **Architectural Documentation**:
+  - Created [docs/WINDOWS_NOTIFICATION_ACCESS.md](docs/WINDOWS_NOTIFICATION_ACCESS.md) thoroughly analyzing the Windows OS security architecture, Package Identity requirements, MSIX vs Sparse Package trade-offs, and distribution options.
+- **Honest Compliance**: NOVA strictly respects this OS security boundary without inventing workarounds or pretending external capture succeeded. NOVA exposes external notification capture as unavailable in unpackaged mode (`Denied`), while keeping its internal companion and application notification pipeline 100% operational.
 
-### 2. Domain Models & Lifecycle
-- **`NovaNotification`**: Immutable record with `Id`, `NativeId`, `SourceType`, `SourceAppId`, `SourceDisplayName`, `Title`, `Message`, `Timestamp`, `Priority`, `Category`, `ExpiresAt`, and capability flags.
-- **Friendly App Formatting**: Normalizes raw AUMIDs and process names (`Slack.exe` -> "Slack", `msedge.exe` -> "Microsoft Edge", `Discord.exe` -> "Discord", `ShellExperienceHost` -> "Windows System").
+### 2. Notification Action Semantics Clarification
+- **Differentiated Island Clearing from Action Center Dismissal**:
+  - `CanDismissFromIsland`: Always `true` for notifications in NOVA's queue.
+  - `CanDismissFromActionCenter`: `true` ONLY if `NativeId.HasValue` AND `WindowsAccessStatus == Allowed`. In unpackaged desktop mode, this is strictly `false`.
+  - UI Button Labels & Tooltips:
+    - Expanded button displays `✕ Clear` (instead of misleading `✕ Dismiss`) when running unpackaged.
+    - Tooltip: `Clear from NOVA Island (Native Action Center dismissal requires packaged MSIX with notificationListener capability)`.
+  - EventEngine Descriptions:
+    - When dismissed unpackaged, published event explicitly records: `"Cleared from NOVA Island queue: {id}"` rather than falsely claiming Action Center dismissal.
+  - `CanOpen`: Strictly `false` unless a registered protocol or executable activation handler is available, avoiding misleading affordances.
+
+### 3. Domain Models & Lifecycle
+- **`NovaNotification`**: Immutable record with `Id`, `NativeId`, `SourceType`, `SourceAppId`, `SourceDisplayName`, `Title`, `Message`, `Timestamp`, `Priority`, `Category`, `ExpiresAt`, `CanDismiss`, `CanDismissFromIsland`, `CanDismissFromActionCenter`, and `DismissTooltip`.
+- **Friendly App Formatting**: Normalizes raw AUMIDs and process names (`Slack.exe` -> "Slack", `Microsoft.MicrosoftEdge.Stable_8wekyb3d8bbwe!App` -> "Microsoft Edge", `Discord.exe` -> "Discord", `ShellExperienceHost` -> "Windows System").
 - **Prioritization & Expiry**: Notifications in the queue are strictly ordered by `Priority` (`Critical > High > Normal > Low`), tie-broken by arrival timestamp. Timed-out notifications are pruned automatically via `PruneExpired()`.
 - **Deduplication**: Identical notifications from the same app within their expiry window update the existing item rather than flooding the user interface.
 
-### 3. EventEngine Bus Integration
+### 4. EventEngine Bus Integration
 - All notification events are published through central `EventEngine`:
   - `notification.arrived` (`EventCategory.Notification`, Priority matching notification)
-  - `notification.dismissed` (`EventCategory.Notification`, Priority: Low)
+  - `notification.dismissed` (`EventCategory.Notification`, Priority: Low, with honest description)
   - `notification.cleared` (`EventCategory.Notification`, Priority: Low)
-- Category: Added `EventCategory.Notification` to `EventPriority.cs`.
+- Category: `EventCategory.Notification` in `EventPriority.cs`.
 
-### 4. Dynamic Island UI & Companion Reactions
+### 5. Dynamic Island UI & Companion Reactions
 - **Compact Island Mode**:
-  - Displays incoming notifications with priority over default status and media ticker: `🔔 [Source]: [Title]` with a quick `✕` dismiss button right on the pill.
+  - Displays incoming notifications with priority over default status and media ticker: `🔔 [Source]: [Title]` with a quick `✕` clear button right on the pill.
 - **Expanded Island Mode**:
-  - Displays a high-contrast amber notification card (`#D97706` border, `#181D29` dark card) with glowing bell icon, source badge (e.g. `SLACK`), title, message body, `✕ Dismiss`, and `Clear All` buttons.
+  - Displays a high-contrast amber notification card (`#D97706` border, `#181D29` dark card) with glowing bell icon, source badge (e.g. `SLACK`, `MICROSOFT EDGE`), title, message body, `✕ Clear`, and `Clear All` buttons with accurate tooltips.
   - Automatically collapses when all notifications are cleared, cleanly transitioning back to the companion and media dashboard.
 - **Companion Mascot Reaction**:
   - Mascot's cyan LED eyes perk up with excited/happy expression (`^  ^`) on arrival of High/Critical notifications, or nod with acknowledgement on Normal alerts.
 
-### 5. Automated Tests & Verification
-- **Test Suite**: **48 total automated tests** passing (`0 Warning(s), 0 Error(s)`).
+### 6. Automated Tests & Verification
+- **Test Suite**: **51 total automated tests** passing (`0 Warning(s), 0 Error(s)`).
   - `NotificationMetadata_FormattingAndValidation`
   - `NotificationPriority_Ordering_CriticalOverHighOverNormalOverLow`
   - `NotificationExpiry_PrunesExpiredToasts`
   - `NotificationDeduplication_ReplacesDuplicateToasts`
   - `NotificationService_PublishesEventsToEventEngine`
   - `NotificationService_Disposal_CleansUpAndRejectsActions`
-  - `WindowsNotificationService_Lifecycle_RespectsPrivacyPermissions`
-  - `RealWindowsNotifications_TwoSupportedApplications_Integration` (Real integration testing with Windows UserNotificationListener OS status, Win32 Shell_NotifyIconW, and multi-app prioritization)
+  - `WindowsNotificationService_Lifecycle_RespectsPrivacyPermissions` (lifecycle, diagnostics, and privacy status)
+  - `RealWindowsSecurity_UserNotificationListener_VerifiesUnpackagedBoundary` (proves real WinRT returns `Denied` for unpackaged Win32 execution)
+  - `RealWindowsNotifications_BlockedBehavior_NoExternalToastsCapturedInUnpackagedMode` (verifies 0 external toasts captured when access is `Denied`)
+  - `NotificationActionSemantics_DistinguishesIslandFromActionCenterDismissal` (verifies local clearing without false Action Center claims)
+  - `LocalNotificationPipeline_RealApplicationSchemas_SlackAndEdge` (verifies local pipeline with real Slack and Edge schemas, prioritization, and STA Island UI rendering)
   - `IslandWindow_NotificationUI_UpdatesOnNotificationEvents`
 - **Application Smoke Test**: `Nova.exe --smoke-test` executed and verified.
 - **Visual Inspection**: Captured and validated screenshots:
-  - `island_phase5_compact_notification.png` (Compact pill showing notification banner + dismiss button + happy companion eyes)
-  - `island_phase5_expanded_notification.png` (Expanded island showing amber notification banner, robot showcase, and now playing card)
+  - `island_phase5_compact_notification.png` (Compact pill showing notification banner + clear button + happy companion eyes)
+  - `island_phase5_expanded_notification.png` (Expanded island showing amber notification banner with explicit `✕ Clear` and `Clear All` buttons, robot showcase, and now playing card)
 
 ---
 
 ## Acceptance Criteria Checklist
 - [x] Investigated supported Windows notification APIs and documented privacy limitations honestly.
-- [x] Notification domain model (`NovaNotification`) implemented with title, body, app identity, timestamp, priority, and expiry.
+- [x] Proved real Windows OS security boundary via `UserNotificationListener` queries returning `Denied` for unpackaged desktop mode.
+- [x] Documented architectural packaging trade-offs (Unpackaged Win32 vs MSIX vs Sparse Package) in `docs/WINDOWS_NOTIFICATION_ACCESS.md`.
+- [x] Corrected notification action semantics: differentiated local queue clearing from native Action Center dismissal.
+- [x] Notification domain model (`NovaNotification`) implemented with title, body, app identity, timestamp, priority, expiry, and capability flags.
 - [x] Notification events published strictly via central `EventEngine`.
-- [x] Compact notification indicator with quick dismiss implemented in Dynamic Island.
-- [x] Expandable notification preview with dismiss and clear-all actions implemented in Expanded Island.
+- [x] Compact notification indicator with quick clear button implemented in Dynamic Island.
+- [x] Expandable notification preview with clear and clear-all actions implemented in Expanded Island.
 - [x] Robotic companion reacts with appropriate expressions to incoming notifications.
 - [x] Windows privacy permissions respected without unauthorized bypasses or security workarounds.
 - [x] Zero cloud APIs, accounts, subscriptions, or remote calls (100% local-first and offline).
-- [x] Automated tests cover metadata, priority ordering, expiry pruning, deduplication, privacy checks, and real Windows API integration.
+- [x] Automated tests cover metadata, priority ordering, expiry pruning, deduplication, real WinRT security boundaries, action semantics, and local schema processing.
 - [x] Zero regressions against Phase 0, 1, 2, 3, or 4.

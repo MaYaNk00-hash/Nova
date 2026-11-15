@@ -22,7 +22,17 @@ public sealed record NovaNotification
     public byte[]? IconBytes { get; init; }
     public DateTimeOffset? ExpiresAt { get; init; }
     public bool CanDismiss { get; init; } = true;
-    public bool CanOpen { get; init; }
+    public bool CanDismissFromIsland => CanDismiss;
+    public bool CanDismissFromActionCenter { get; init; } = false;
+    public bool CanOpen { get; init; } = false;
+
+    /// <summary>
+    /// Explicit tooltip describing what dismissing this notification will actually do.
+    /// Distinguishes clearing NOVA's internal queue from native Action Center dismissal.
+    /// </summary>
+    public string DismissTooltip => CanDismissFromActionCenter
+        ? "Dismiss from NOVA Island and native Windows Action Center"
+        : "Clear from NOVA Island (Native Action Center dismissal requires packaged MSIX with notificationListener capability)";
 
     public bool HasContent => !string.IsNullOrWhiteSpace(Title) || !string.IsNullOrWhiteSpace(Message);
     public bool HasIcon => IconBytes != null && IconBytes.Length > 0;

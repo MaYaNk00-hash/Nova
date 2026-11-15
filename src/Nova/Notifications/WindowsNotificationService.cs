@@ -39,6 +39,28 @@ public sealed class WindowsNotificationService : INotificationService
         }
     }
 
+    /// <summary>
+    /// Indicates whether external notification capture from third-party Windows apps is currently available.
+    /// In classic unpackaged Win32 execution, this is false because Windows restricts UserNotificationListener to packaged applications.
+    /// </summary>
+    public bool IsExternalCaptureAvailable => WindowsAccessStatus == NotificationAccessStatus.Allowed;
+
+    /// <summary>
+    /// Indicates whether dismissing a notification will clear it from the native Windows Action Center.
+    /// </summary>
+    public bool CanDismissNativeNotifications => WindowsAccessStatus == NotificationAccessStatus.Allowed;
+
+    /// <summary>
+    /// Human-readable explanation of the current Windows notification access status and requirements.
+    /// </summary>
+    public string AccessStatusExplanation => WindowsAccessStatus switch
+    {
+        NotificationAccessStatus.Allowed => "Windows notification capture is active. Toasts from supported applications are being monitored.",
+        NotificationAccessStatus.Denied => "Windows notification capture is Denied by the OS. Unpackaged Win32 applications lack Package Identity and the restricted 'userNotificationListener' capability. Action Center toasts cannot be intercepted without a packaged MSIX installation. Local companion notifications remain fully functional.",
+        NotificationAccessStatus.NotSupported => "UserNotificationListener API is not supported on this Windows version.",
+        _ => "Windows notification access status is unspecified."
+    };
+
     public event EventHandler<NovaNotification>? NotificationArrived;
     public event EventHandler<string>? NotificationDismissed;
 
@@ -107,7 +129,9 @@ public sealed class WindowsNotificationService : INotificationService
             }
             else
             {
-                AppLogger.Info("Windows notification access is not 'Allowed' (Privacy/Settings restrictions). Respecting user privacy settings.");
+                AppLogger.Info($"Windows notification access status: {WindowsAccessStatus}. " +
+                               "Classic unpackaged Win32 applications lack Package Identity and cannot declare 'uap3:userNotificationListener'. " +
+                               "External Windows Action Center toast interception is unavailable. Local companion notifications remain active.");
             }
         }
         catch (Exception ex)
@@ -133,6 +157,10 @@ public sealed class WindowsNotificationService : INotificationService
                 HookListenerEvents();
                 await SyncActiveNotificationsAsync();
                 return true;
+            }
+            else
+            {
+                AppLogger.Info($"RequestAccessAsync returned {WindowsAccessStatus}. Windows security blocks notification listener requests from unpackaged applications.");
             }
         }
         catch (Exception ex)
@@ -242,6 +270,7 @@ public sealed class WindowsNotificationService : INotificationService
 
             // Expiry: Toasts default to 20 seconds of island visibility unless high priority
             var ttl = TimeSpan.FromSeconds(20);
+            var canDismissNative = native.Id != 0;
 
             return new NovaNotification
             {
@@ -254,7 +283,8 @@ public sealed class WindowsNotificationService : INotificationService
                 Timestamp = native.CreationTime,
                 Priority = EventPriority.Normal,
                 ExpiresAt = DateTimeOffset.UtcNow.Add(ttl),
-                CanDismiss = true
+                CanDismiss = true,
+                CanDismissFromActionCenter = canDismissNative
             };
         }
         catch (Exception ex)
@@ -307,17 +337,24 @@ public sealed class WindowsNotificationService : INotificationService
 
         if (target == null) return Task.FromResult(false);
 
+        bool nativeDismissed = false;
         // If backed by native UserNotificationListener and supported, dismiss from Windows Action Center
         if (target.NativeId.HasValue && _listener != null && WindowsAccessStatus == NotificationAccessStatus.Allowed)
         {
             try
             {
                 _listener.RemoveNotification(target.NativeId.Value);
+                nativeDismissed = true;
+                AppLogger.Info($"Notification {target.Id} (NativeId: {target.NativeId}) dismissed from Windows Action Center.");
             }
             catch (Exception ex)
             {
-                AppLogger.Warning($"Could not remove native notification {target.NativeId}: {ex.Message}");
+                AppLogger.Warning($"Could not remove native Action Center notification {target.NativeId}: {ex.Message}");
             }
+        }
+        else
+        {
+            AppLogger.Info($"Notification '{target.Title}' dismissed from NOVA Island queue (Native Action Center dismissal skipped: WindowsAccessStatus={WindowsAccessStatus}).");
         }
 
         NotificationDismissed?.Invoke(this, notificationId);
@@ -326,8 +363,10 @@ public sealed class WindowsNotificationService : INotificationService
         {
             _eventEngine.Publish(NovaEvent.CreateNotificationEvent(
                 eventType: "notification.dismissed",
-                title: "Notification Dismissed",
-                description: notificationId,
+                title: nativeDismissed ? "Action Center Notification Dismissed" : "Island Notification Cleared",
+                description: nativeDismissed
+                    ? $"Dismissed from NOVA Island and Windows Action Center: {notificationId}"
+                    : $"Cleared from NOVA Island queue: {notificationId}",
                 payload: notificationId,
                 priority: EventPriority.Low));
         }
@@ -370,29 +409,38 @@ public sealed class WindowsNotificationService : INotificationService
     {
         if (_isDisposed) throw new ObjectDisposedException(nameof(WindowsNotificationService));
 
+        int clearedCount;
         lock (_lock)
         {
+            clearedCount = _activeNotifications.Count;
             _activeNotifications.Clear();
         }
 
+        bool nativeCleared = false;
         if (_listener != null && WindowsAccessStatus == NotificationAccessStatus.Allowed)
         {
             try
             {
                 _listener.ClearNotifications();
+                nativeCleared = true;
+                AppLogger.Info("All native Action Center notifications cleared successfully.");
             }
             catch (Exception ex)
             {
                 AppLogger.Warning($"Could not clear native notifications: {ex.Message}");
             }
         }
+        else
+        {
+            AppLogger.Info($"Cleared {clearedCount} notifications from NOVA Island queue (Native Action Center clear skipped: WindowsAccessStatus={WindowsAccessStatus}).");
+        }
 
         if (_eventEngine != null)
         {
             _eventEngine.Publish(NovaEvent.CreateNotificationEvent(
                 eventType: "notification.cleared",
-                title: "Notifications Cleared",
-                description: "All notifications dismissed",
+                title: nativeCleared ? "Notifications Cleared (All)" : "Island Notifications Cleared",
+                description: nativeCleared ? "All notifications dismissed from NOVA and Action Center" : "All notifications cleared from NOVA Island queue",
                 priority: EventPriority.Low));
         }
 

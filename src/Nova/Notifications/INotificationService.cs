@@ -15,6 +15,22 @@ public interface INotificationService : IDisposable
     NotificationAccessStatus WindowsAccessStatus { get; }
 
     /// <summary>
+    /// Indicates whether external notification capture from third-party Windows apps is currently available.
+    /// In classic unpackaged Win32 execution, this is false because Windows restricts UserNotificationListener to packaged applications.
+    /// </summary>
+    bool IsExternalCaptureAvailable { get; }
+
+    /// <summary>
+    /// Indicates whether dismissing a notification will clear it from the native Windows Action Center.
+    /// </summary>
+    bool CanDismissNativeNotifications { get; }
+
+    /// <summary>
+    /// Human-readable explanation of the current Windows notification access status and requirements.
+    /// </summary>
+    string AccessStatusExplanation { get; }
+
+    /// <summary>
     /// Active notifications ordered by Priority (Critical > High > Normal > Low) then Timestamp.
     /// </summary>
     IReadOnlyList<NovaNotification> ActiveNotifications { get; }
