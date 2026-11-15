@@ -5,6 +5,7 @@ using System.Windows.Interop;
 using System.Windows.Media.Animation;
 using System.Windows.Threading;
 using Nova.Core;
+using Nova.Events;
 using Nova.UI.Robot;
 
 namespace Nova.UI;
@@ -14,6 +15,8 @@ public partial class IslandWindow : Window
     private readonly TrayManager _trayManager;
     private readonly DispatcherTimer _clockTimer;
     private readonly RobotController _robotController;
+    private readonly EventEngine _eventEngine;
+    private readonly List<IDisposable> _subscriptions = new();
     private bool _isManuallyPositioned = false;
     private bool _isTransitioning = false;
 
@@ -21,6 +24,7 @@ public partial class IslandWindow : Window
     public bool IsAlwaysOnTop => Topmost;
     public bool IsManuallyPositioned => _isManuallyPositioned;
     public RobotController RobotController => _robotController;
+    public EventEngine EventEngine => _eventEngine;
 
     public IslandWindow()
     {
@@ -28,6 +32,7 @@ public partial class IslandWindow : Window
 
         _trayManager = new TrayManager(this);
         _robotController = new RobotController();
+        _eventEngine = new EventEngine();
 
         // Low-frequency timer for clock & status updates (1 update per second)
         _clockTimer = new DispatcherTimer
@@ -49,6 +54,9 @@ public partial class IslandWindow : Window
         _robotController.RegisterCompanion(CompactRobot);
         _robotController.RegisterCompanion(ExpandedRobot);
 
+        // Setup EventEngine subscriptions
+        SetupEventSubscriptions();
+
         // Position window top-center
         ResetToTopCenter(animate: false);
 
@@ -57,6 +65,35 @@ public partial class IslandWindow : Window
         _clockTimer.Start();
 
         AppLogger.Info($"IslandWindow loaded. Initial position: Left={Left}, Top={Top}.");
+    }
+
+    private void SetupEventSubscriptions()
+    {
+        // 1. Companion reaction subscriptions
+        _subscriptions.Add(_eventEngine.Subscribe("companion.excited", e => _robotController.TriggerExcitedTestEvent()));
+        _subscriptions.Add(_eventEngine.Subscribe("companion.confused", e => _robotController.TriggerConfusedTestEvent()));
+        _subscriptions.Add(_eventEngine.Subscribe("companion.nod", e => _robotController.TriggerNodTestEvent()));
+        _subscriptions.Add(_eventEngine.Subscribe("user.interaction", e => _robotController.OnUserInteraction()));
+
+        // 2. Island state subscriptions
+        _subscriptions.Add(_eventEngine.Subscribe("island.state_changed", e =>
+        {
+            if (e.Payload is IslandState state)
+            {
+                _robotController.OnIslandStateChanged(state);
+            }
+        }));
+
+        // 3. Telemetry/UI Status subscriber
+        _subscriptions.Add(_eventEngine.Subscribe(e =>
+        {
+            if (EventStatusText != null)
+            {
+                EventStatusText.Text = $"BUS: {e.EventType.ToUpperInvariant()} • {e.Priority}";
+            }
+        }));
+
+        AppLogger.Info($"EventEngine subscriptions established. Count: {_subscriptions.Count}.");
     }
 
     private void ClockTimer_Tick(object? sender, EventArgs e)
@@ -85,8 +122,8 @@ public partial class IslandWindow : Window
         _isTransitioning = true;
         CurrentState = targetState;
 
-        // Notify Robot Companion of state change
-        _robotController.OnIslandStateChanged(targetState);
+        // Publish state change event through the Core Event Engine
+        _eventEngine.Publish(NovaEvent.CreateSystemEvent("island.state_changed", $"Island state changed to {targetState}", targetState, EventPriority.Normal));
 
         var duration = TimeSpan.FromMilliseconds(IslandDimensions.AnimationDurationMs);
         var ease = new CubicEase { EasingMode = EasingMode.EaseOut };
@@ -212,7 +249,8 @@ public partial class IslandWindow : Window
 
     private void Pill_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
-        _robotController.OnUserInteraction();
+        // Publish user interaction event to the Core Event Engine
+        _eventEngine.Publish(NovaEvent.Create("user.interaction", "Nova.UI", "User Clicked Island", category: EventCategory.UserAction));
 
         if (e.ClickCount == 2)
         {
@@ -294,10 +332,21 @@ public partial class IslandWindow : Window
     private void HideButton_Click(object sender, RoutedEventArgs e) => TransitionTo(IslandState.Hidden);
     private void PinButton_Click(object sender, RoutedEventArgs e) => ToggleAlwaysOnTop();
 
-    // Robot Interactive Test Buttons
-    private void BtnExcited_Click(object sender, RoutedEventArgs e) => _robotController.TriggerExcitedTestEvent();
-    private void BtnConfused_Click(object sender, RoutedEventArgs e) => _robotController.TriggerConfusedTestEvent();
-    private void BtnNod_Click(object sender, RoutedEventArgs e) => _robotController.TriggerNodTestEvent();
+    // Robot Interactive Test Buttons - Publish via EventEngine
+    private void BtnExcited_Click(object sender, RoutedEventArgs e)
+    {
+        _eventEngine.Publish(NovaEvent.CreateCompanionEvent("companion.excited", "Companion Excited", "Triggered from UI test button", EventPriority.High));
+    }
+
+    private void BtnConfused_Click(object sender, RoutedEventArgs e)
+    {
+        _eventEngine.Publish(NovaEvent.CreateCompanionEvent("companion.confused", "Companion Confused", "Triggered from UI test button", EventPriority.Normal));
+    }
+
+    private void BtnNod_Click(object sender, RoutedEventArgs e)
+    {
+        _eventEngine.Publish(NovaEvent.CreateCompanionEvent("companion.nod", "Companion Nod", "Triggered from UI test button", EventPriority.Low));
+    }
 
     // Context Menu Handlers
     private void MenuExpand_Click(object sender, RoutedEventArgs e) => TransitionTo(IslandState.Expanded);
@@ -311,10 +360,21 @@ public partial class IslandWindow : Window
         Close();
     }
 
-    // Robot Context Menu Handlers
-    private void MenuTestExcited_Click(object sender, RoutedEventArgs e) => _robotController.TriggerExcitedTestEvent();
-    private void MenuTestConfused_Click(object sender, RoutedEventArgs e) => _robotController.TriggerConfusedTestEvent();
-    private void MenuTestNod_Click(object sender, RoutedEventArgs e) => _robotController.TriggerNodTestEvent();
+    // Robot Context Menu Handlers - Publish via EventEngine
+    private void MenuTestExcited_Click(object sender, RoutedEventArgs e)
+    {
+        _eventEngine.Publish(NovaEvent.CreateCompanionEvent("companion.excited", "Companion Excited", "Triggered from Context Menu", EventPriority.High));
+    }
+
+    private void MenuTestConfused_Click(object sender, RoutedEventArgs e)
+    {
+        _eventEngine.Publish(NovaEvent.CreateCompanionEvent("companion.confused", "Companion Confused", "Triggered from Context Menu", EventPriority.Normal));
+    }
+
+    private void MenuTestNod_Click(object sender, RoutedEventArgs e)
+    {
+        _eventEngine.Publish(NovaEvent.CreateCompanionEvent("companion.nod", "Companion Nod", "Triggered from Context Menu", EventPriority.Low));
+    }
 
     private void MenuPersonalityCalm_Click(object sender, RoutedEventArgs e)
     {
@@ -351,6 +411,15 @@ public partial class IslandWindow : Window
     {
         _clockTimer.Stop();
         _trayManager.Dispose();
-        AppLogger.Info("IslandWindow closed and resources cleaned up.");
+
+        // Dispose all subscriptions and the engine
+        foreach (var sub in _subscriptions)
+        {
+            sub.Dispose();
+        }
+        _subscriptions.Clear();
+        _eventEngine.Dispose();
+
+        AppLogger.Info("IslandWindow closed and EventEngine disposed.");
     }
 }

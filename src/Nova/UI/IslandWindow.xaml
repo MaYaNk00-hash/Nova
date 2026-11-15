@@ -279,6 +279,12 @@
                                                FontSize="8.5" 
                                                FontWeight="Bold" 
                                                Foreground="#38BDF8" 
+                                               Margin="0,0,0,2"/>
+                                    <TextBlock x:Name="EventStatusText" 
+                                               Text="BUS: READY • 0 EVENTS" 
+                                               FontSize="8" 
+                                               FontWeight="Medium" 
+                                               Foreground="#94A3B8" 
                                                Margin="0,0,0,5"/>
                                     <WrapPanel>
                                         <Button Style="{StaticResource IslandActionButton}" 

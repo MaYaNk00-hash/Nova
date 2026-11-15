@@ -139,3 +139,4 @@ public sealed class RobotController
         AppLogger.Info($"Robot Reduced Motion updated to: {enabled}.");
     }
 }
+

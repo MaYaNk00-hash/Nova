@@ -118,3 +118,4 @@ public sealed class RobotSettings
         SettingsChanged?.Invoke(this, EventArgs.Empty);
     }
 }
+
