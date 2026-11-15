@@ -66,3 +66,4 @@ public class CornerRadiusAnimation : AnimationTimeline
         return new CornerRadius(topLeft, topRight, bottomRight, bottomLeft);
     }
 }
+

@@ -4,6 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Nova.UI"
+        xmlns:robot="clr-namespace:Nova.UI.Robot"
         mc:Ignorable="d"
         Title="NOVA Dynamic Island"
         WindowStyle="None"
@@ -14,6 +15,7 @@
         ResizeMode="NoResize"
         Width="460"
         Height="250"
+        MouseMove="Window_MouseMove"
         MouseLeftButtonDown="Window_MouseLeftButtonDown"
         MouseRightButtonUp="Window_MouseRightButtonUp"
         Loaded="Window_Loaded"
@@ -26,8 +28,8 @@
             <Setter Property="Foreground" Value="#E2E8F0"/>
             <Setter Property="BorderBrush" Value="#2D3748"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Padding" Value="8,4"/>
-            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Padding" Value="7,3"/>
+            <Setter Property="FontSize" Value="10.5"/>
             <Setter Property="FontWeight" Value="Medium"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
@@ -36,7 +38,7 @@
                         <Border Background="{TemplateBinding Background}" 
                                 BorderBrush="{TemplateBinding BorderBrush}" 
                                 BorderThickness="{TemplateBinding BorderThickness}" 
-                                CornerRadius="6" 
+                                CornerRadius="5" 
                                 Padding="{TemplateBinding Padding}">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
@@ -99,6 +101,19 @@
             <MenuItem Header="Reset Position (Top Center)" Click="MenuResetPosition_Click"/>
             <MenuItem x:Name="MenuAlwaysOnTop" Header="Always On Top" IsCheckable="True" IsChecked="True" Click="MenuAlwaysOnTop_Click"/>
             <Separator/>
+            <MenuItem Header="Robot Companion">
+                <MenuItem Header="Test: ✨ Excited" Click="MenuTestExcited_Click"/>
+                <MenuItem Header="Test: ❓ Confused" Click="MenuTestConfused_Click"/>
+                <MenuItem Header="Test: 👋 Nod" Click="MenuTestNod_Click"/>
+                <Separator/>
+                <MenuItem Header="Personality: Calm" Click="MenuPersonalityCalm_Click"/>
+                <MenuItem Header="Personality: Playful" Click="MenuPersonalityPlayful_Click"/>
+                <MenuItem Header="Personality: Minimal" Click="MenuPersonalityMinimal_Click"/>
+                <Separator/>
+                <MenuItem x:Name="MenuBatterySaver" Header="Battery Saver Mode" IsCheckable="True" Click="MenuBatterySaver_Click"/>
+                <MenuItem x:Name="MenuReducedMotion" Header="Reduced Motion" IsCheckable="True" Click="MenuReducedMotion_Click"/>
+            </MenuItem>
+            <Separator/>
             <MenuItem Header="Hide to Tray" Click="MenuHide_Click"/>
             <MenuItem Header="Exit NOVA" Click="MenuExit_Click"/>
         </ContextMenu>
@@ -122,7 +137,7 @@
 
             <Grid>
                 <!-- COMPACT STATE VIEW -->
-                <Grid x:Name="CompactPanel" Height="42" VerticalAlignment="Center" Margin="12,0">
+                <Grid x:Name="CompactPanel" Height="42" VerticalAlignment="Center" Margin="10,0">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="*"/>
@@ -130,13 +145,14 @@
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
 
-                    <!-- Glowing LED Accent Indicator -->
-                    <Grid Grid.Column="0" VerticalAlignment="Center" Margin="0,0,10,0">
-                        <Ellipse Width="14" Height="14" Fill="#15364A"/>
-                        <Ellipse Width="8" Height="8" Fill="#38BDF8"/>
-                    </Grid>
+                    <!-- Robot Mascot Companion (Compact 26px) -->
+                    <robot:RobotCompanion x:Name="CompactRobot" 
+                                          CompanionSize="26" 
+                                          Grid.Column="0" 
+                                          VerticalAlignment="Center" 
+                                          Margin="0,0,8,0"/>
 
-                    <!-- Name & Badge -->
+                    <!-- Name & Status Badge -->
                     <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
                         <TextBlock Text="NOVA" 
                                    FontWeight="Bold" 
@@ -146,7 +162,7 @@
                         <Border Background="#1E293B" 
                                 CornerRadius="4" 
                                 Padding="5,1" 
-                                Margin="8,0,0,0" 
+                                Margin="6,0,0,0" 
                                 VerticalAlignment="Center">
                             <TextBlock Text="READY" 
                                        FontSize="8" 
@@ -164,7 +180,7 @@
                                VerticalAlignment="Center" 
                                Margin="0,0,8,0"/>
 
-                    <!-- Expand Chevron -->
+                    <!-- Expand Chevron Button -->
                     <Button Grid.Column="3" 
                             Style="{StaticResource IconButton}" 
                             Content="▾" 
@@ -177,7 +193,7 @@
                 <Grid x:Name="ExpandedPanel" 
                       Opacity="0" 
                       Visibility="Collapsed" 
-                      Margin="16,14,16,14">
+                      Margin="16,12,16,12">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
@@ -185,7 +201,7 @@
                     </Grid.RowDefinitions>
 
                     <!-- Header Row -->
-                    <Grid Grid.Row="0" Margin="0,0,0,12">
+                    <Grid Grid.Row="0" Margin="0,0,0,10">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
@@ -229,53 +245,75 @@
                     </Grid>
 
                     <!-- Content Cards -->
-                    <Grid Grid.Row="1" Margin="0,0,0,12">
+                    <Grid Grid.Row="1" Margin="0,0,0,10">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="1.2*"/>
                             <ColumnDefinition Width="10"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
 
-                        <!-- Card 1: Island Status -->
+                        <!-- Card 1: Showcase Robot & Reaction Controls -->
                         <Border Grid.Column="0" 
                                 Background="#141822" 
                                 BorderBrush="#252D3D" 
                                 BorderThickness="1" 
                                 CornerRadius="8" 
-                                Padding="12">
-                            <StackPanel VerticalAlignment="Center">
-                                <TextBlock Text="DYNAMIC ISLAND" 
-                                           FontSize="9" 
-                                           FontWeight="Bold" 
-                                           Foreground="#38BDF8" 
-                                           Margin="0,0,0,4"/>
-                                <TextBlock Text="Floating Interface" 
-                                           FontSize="13" 
-                                           FontWeight="SemiBold" 
-                                           Foreground="#F1F5F9" 
-                                           Margin="0,0,0,2"/>
-                                <TextBlock Text="Hardware-accelerated WPF" 
-                                           FontSize="10" 
-                                           Foreground="#94A3B8"/>
-                            </StackPanel>
+                                Padding="10">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <!-- Showcase Robot (48px) -->
+                                <robot:RobotCompanion x:Name="ExpandedRobot" 
+                                                      CompanionSize="48" 
+                                                      Grid.Column="0" 
+                                                      VerticalAlignment="Center" 
+                                                      Margin="0,0,10,0"/>
+
+                                <!-- Reaction Test Buttons -->
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <TextBlock x:Name="RobotStatusText" 
+                                               Text="COMPANION • ACTIVE" 
+                                               FontSize="8.5" 
+                                               FontWeight="Bold" 
+                                               Foreground="#38BDF8" 
+                                               Margin="0,0,0,5"/>
+                                    <WrapPanel>
+                                        <Button Style="{StaticResource IslandActionButton}" 
+                                                Content="✨ Happy" 
+                                                Click="BtnExcited_Click" 
+                                                Margin="0,0,4,4"/>
+                                        <Button Style="{StaticResource IslandActionButton}" 
+                                                Content="❓ Confused" 
+                                                Click="BtnConfused_Click" 
+                                                Margin="0,0,4,4"/>
+                                        <Button Style="{StaticResource IslandActionButton}" 
+                                                Content="👋 Nod" 
+                                                Click="BtnNod_Click" 
+                                                Margin="0,0,4,4"/>
+                                    </WrapPanel>
+                                </StackPanel>
+                            </Grid>
                         </Border>
 
-                        <!-- Card 2: Quick Position Control -->
+                        <!-- Card 2: Quick Position & Monitor Control -->
                         <Border Grid.Column="2" 
                                 Background="#141822" 
                                 BorderBrush="#252D3D" 
                                 BorderThickness="1" 
                                 CornerRadius="8" 
-                                Padding="12">
+                                Padding="10">
                             <StackPanel VerticalAlignment="Center">
                                 <TextBlock Text="POSITIONING" 
-                                           FontSize="9" 
+                                           FontSize="8.5" 
                                            FontWeight="Bold" 
                                            Foreground="#A855F7" 
                                            Margin="0,0,0,4"/>
                                 <TextBlock x:Name="MonitorInfoText" 
                                            Text="Primary Monitor" 
-                                           FontSize="11" 
+                                           FontSize="10.5" 
                                            FontWeight="Medium" 
                                            Foreground="#E2E8F0" 
                                            Margin="0,0,0,6"/>
@@ -294,8 +332,8 @@
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
 
-                        <TextBlock Text="Drag anywhere to move • Right-click for menu" 
-                                   FontSize="10" 
+                        <TextBlock Text="Move cursor to track • Click mascot to nod" 
+                                   FontSize="9.5" 
                                    Foreground="#64748B" 
                                    VerticalAlignment="Center"/>
 

@@ -5,6 +5,7 @@ using System.Windows.Interop;
 using System.Windows.Media.Animation;
 using System.Windows.Threading;
 using Nova.Core;
+using Nova.UI.Robot;
 
 namespace Nova.UI;
 
@@ -12,20 +13,23 @@ public partial class IslandWindow : Window
 {
     private readonly TrayManager _trayManager;
     private readonly DispatcherTimer _clockTimer;
+    private readonly RobotController _robotController;
     private bool _isManuallyPositioned = false;
     private bool _isTransitioning = false;
 
     public IslandState CurrentState { get; private set; } = IslandState.Compact;
     public bool IsAlwaysOnTop => Topmost;
     public bool IsManuallyPositioned => _isManuallyPositioned;
+    public RobotController RobotController => _robotController;
 
     public IslandWindow()
     {
         InitializeComponent();
 
         _trayManager = new TrayManager(this);
+        _robotController = new RobotController();
 
-        // Low-frequency timer for clock & status updates (1 update per second, low overhead)
+        // Low-frequency timer for clock & status updates (1 update per second)
         _clockTimer = new DispatcherTimer
         {
             Interval = TimeSpan.FromSeconds(1)
@@ -40,6 +44,10 @@ public partial class IslandWindow : Window
         var hwnd = new WindowInteropHelper(this).Handle;
         _trayManager.TrayContextMenu = (ContextMenu)Resources["IslandContextMenu"];
         _trayManager.Initialize(hwnd);
+
+        // Register robots with controller
+        _robotController.RegisterCompanion(CompactRobot);
+        _robotController.RegisterCompanion(ExpandedRobot);
 
         // Position window top-center
         ResetToTopCenter(animate: false);
@@ -63,6 +71,12 @@ public partial class IslandWindow : Window
         MonitorInfoText.Text = $"{workArea.Width:F0}x{workArea.Height:F0} WorkArea";
     }
 
+    private void Window_MouseMove(object sender, MouseEventArgs e)
+    {
+        var pos = e.GetPosition(this);
+        _robotController.OnCursorMoved(pos, new Size(Width, Height));
+    }
+
     public void TransitionTo(IslandState targetState)
     {
         if (_isTransitioning && CurrentState == targetState) return;
@@ -70,6 +84,9 @@ public partial class IslandWindow : Window
         AppLogger.Info($"Transitioning Island state from {CurrentState} to {targetState}.");
         _isTransitioning = true;
         CurrentState = targetState;
+
+        // Notify Robot Companion of state change
+        _robotController.OnIslandStateChanged(targetState);
 
         var duration = TimeSpan.FromMilliseconds(IslandDimensions.AnimationDurationMs);
         var ease = new CubicEase { EasingMode = EasingMode.EaseOut };
@@ -102,7 +119,6 @@ public partial class IslandWindow : Window
             targetPillHeight = IslandDimensions.CompactHeight;
             targetCornerRadius = IslandDimensions.CompactCornerRadius;
 
-            // Fade out ExpandedPanel
             var fadeExpanded = new DoubleAnimation(1.0, 0.0, TimeSpan.FromMilliseconds(120));
             fadeExpanded.Completed += (s, e) =>
             {
@@ -118,7 +134,6 @@ public partial class IslandWindow : Window
             targetPillHeight = IslandDimensions.ExpandedHeight;
             targetCornerRadius = IslandDimensions.ExpandedCornerRadius;
 
-            // Fade out CompactPanel
             var fadeCompact = new DoubleAnimation(1.0, 0.0, TimeSpan.FromMilliseconds(120));
             fadeCompact.Completed += (s, e) =>
             {
@@ -129,7 +144,7 @@ public partial class IslandWindow : Window
             CompactPanel.BeginAnimation(OpacityProperty, fadeCompact);
         }
 
-        // Safely determine start dimensions (handle unrendered window state where ActualWidth is 0 or NaN)
+        // Safely determine start dimensions
         double currentWidth = PillBorder.ActualWidth > 0 ? PillBorder.ActualWidth :
             (!double.IsNaN(PillBorder.Width) && PillBorder.Width > 0 ? PillBorder.Width :
             (CurrentState == IslandState.Compact ? IslandDimensions.CompactWidth : IslandDimensions.ExpandedWidth));
@@ -138,7 +153,6 @@ public partial class IslandWindow : Window
             (!double.IsNaN(PillBorder.Height) && PillBorder.Height > 0 ? PillBorder.Height :
             (CurrentState == IslandState.Compact ? IslandDimensions.CompactHeight : IslandDimensions.ExpandedHeight));
 
-        // Animate Pill Dimensions
         var animWidth = new DoubleAnimation(currentWidth, targetPillWidth, duration) { EasingFunction = ease };
         var animHeight = new DoubleAnimation(currentHeight, targetPillHeight, duration) { EasingFunction = ease };
         var animCorner = new CornerRadiusAnimation(PillBorder.CornerRadius, new CornerRadius(targetCornerRadius), duration) { EasingFunction = ease };
@@ -198,9 +212,10 @@ public partial class IslandWindow : Window
 
     private void Pill_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
+        _robotController.OnUserInteraction();
+
         if (e.ClickCount == 2)
         {
-            // Double-click resets to center
             ResetToTopCenter(animate: true);
             e.Handled = true;
             return;
@@ -208,8 +223,6 @@ public partial class IslandWindow : Window
 
         if (CurrentState == IslandState.Compact && e.OriginalSource is not Button)
         {
-            // In compact state, clicking the pill body expands it if not dragging
-            var startPos = e.GetPosition(this);
             double initialLeft = Left;
             double initialTop = Top;
 
@@ -219,7 +232,6 @@ public partial class IslandWindow : Window
             }
             catch { }
 
-            // If dragged meaningfully, mark as manually positioned
             if (Math.Abs(Left - initialLeft) > 3 || Math.Abs(Top - initialTop) > 3)
             {
                 _isManuallyPositioned = true;
@@ -227,7 +239,6 @@ public partial class IslandWindow : Window
             }
             else
             {
-                // Click without drag -> expand
                 TransitionTo(IslandState.Expanded);
             }
 
@@ -250,7 +261,6 @@ public partial class IslandWindow : Window
 
     private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
-        // Allow drag on outer window container
         if (e.OriginalSource is not Button)
         {
             try
@@ -284,6 +294,11 @@ public partial class IslandWindow : Window
     private void HideButton_Click(object sender, RoutedEventArgs e) => TransitionTo(IslandState.Hidden);
     private void PinButton_Click(object sender, RoutedEventArgs e) => ToggleAlwaysOnTop();
 
+    // Robot Interactive Test Buttons
+    private void BtnExcited_Click(object sender, RoutedEventArgs e) => _robotController.TriggerExcitedTestEvent();
+    private void BtnConfused_Click(object sender, RoutedEventArgs e) => _robotController.TriggerConfusedTestEvent();
+    private void BtnNod_Click(object sender, RoutedEventArgs e) => _robotController.TriggerNodTestEvent();
+
     // Context Menu Handlers
     private void MenuExpand_Click(object sender, RoutedEventArgs e) => TransitionTo(IslandState.Expanded);
     private void MenuCompact_Click(object sender, RoutedEventArgs e) => TransitionTo(IslandState.Compact);
@@ -294,6 +309,42 @@ public partial class IslandWindow : Window
     {
         AppLogger.Info("Exit requested by user via context menu.");
         Close();
+    }
+
+    // Robot Context Menu Handlers
+    private void MenuTestExcited_Click(object sender, RoutedEventArgs e) => _robotController.TriggerExcitedTestEvent();
+    private void MenuTestConfused_Click(object sender, RoutedEventArgs e) => _robotController.TriggerConfusedTestEvent();
+    private void MenuTestNod_Click(object sender, RoutedEventArgs e) => _robotController.TriggerNodTestEvent();
+
+    private void MenuPersonalityCalm_Click(object sender, RoutedEventArgs e)
+    {
+        _robotController.SetPersonality(RobotPersonality.Calm);
+        RobotStatusText.Text = "COMPANION • CALM";
+    }
+
+    private void MenuPersonalityPlayful_Click(object sender, RoutedEventArgs e)
+    {
+        _robotController.SetPersonality(RobotPersonality.Playful);
+        RobotStatusText.Text = "COMPANION • PLAYFUL";
+    }
+
+    private void MenuPersonalityMinimal_Click(object sender, RoutedEventArgs e)
+    {
+        _robotController.SetPersonality(RobotPersonality.Minimal);
+        RobotStatusText.Text = "COMPANION • MINIMAL";
+    }
+
+    private void MenuBatterySaver_Click(object sender, RoutedEventArgs e)
+    {
+        var item = (MenuItem)sender;
+        _robotController.SetBatterySaver(item.IsChecked);
+        RobotStatusText.Text = item.IsChecked ? "COMPANION • BATTERY SAVER" : "COMPANION • ACTIVE";
+    }
+
+    private void MenuReducedMotion_Click(object sender, RoutedEventArgs e)
+    {
+        var item = (MenuItem)sender;
+        _robotController.SetReducedMotion(item.IsChecked);
     }
 
     private void Window_Closed(object sender, EventArgs e)

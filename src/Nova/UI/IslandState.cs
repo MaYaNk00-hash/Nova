@@ -20,3 +20,4 @@ public static class IslandDimensions
     public const double TopMargin = 12.0;
     public const int AnimationDurationMs = 280;
 }
+
