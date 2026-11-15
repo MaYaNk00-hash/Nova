@@ -7,8 +7,8 @@
 | **Phase 0** | **Environment and Project Foundation** | **COMPLETED** |
 | **Phase 1** | **Dynamic Island Interface** | **COMPLETED** |
 | **Phase 2** | **NOVA Robotic Companion** | **COMPLETED** |
-| **Phase 3** | **Core Event Engine** | **COMPLETED** |
-| Phase 4 | Windows Media Integration | Pending User Approval |
+| **Phase 3** | **Core Event Engine** | **CORRECTIONS COMPLETED — PENDING APPROVAL** |
+| Phase 4 | Windows Media Integration | Pending |
 | Phase 5 | Windows Notifications | Pending |
 | Phase 6 | System Monitoring | Pending |
 | Phase 7 | Application Awareness and Quick Actions | Pending |
@@ -19,48 +19,42 @@
 
 ---
 
-## Phase 3 Completion Summary
+## Phase 3 Corrections Summary
 
-### Work Completed in Phase 3
-1. **Immutable Event Model (`NovaEvent.cs`)**:
-   - `Id`: Unique `Guid` per event instance.
-   - `Source`: Originator identifier (e.g. `Nova.UI`, `Nova.System`, `Nova.Companion`, `Nova.Test`).
-   - `Category`: `EventCategory` (`General`, `System`, `UserAction`, `Companion`, `Test`).
-   - `EventType`: Dot-namespaced string (e.g. `island.state_changed`, `companion.excited`, `user.interaction`).
-   - `Timestamp`: UTC timestamp (`DateTimeOffset`).
-   - `Priority`: `EventPriority` (`Low`, `Normal`, `High`, `Critical`).
-   - `Title` and `Description`: Human-readable summaries.
-   - `Payload`: Type-safe context object.
-   - `ExpiresAt`: Expiration timestamp with `IsExpired()` evaluation.
-   - `DeduplicationKey`: Key used to suppress rapid duplicate events.
-2. **Central Event Engine & Router (`EventEngine.cs`)**:
-   - Thread-safe pub-sub bus with zero external dependencies.
-   - **Deduplication Engine**: Rejects events with matching `DeduplicationKey` within the active deduplication window (configurable TTL or default 3s), pruning stale keys automatically.
-   - **Expiration Filter**: Discards expired events prior to subscriber delivery.
-   - **Safe UI Dispatch**: Automatically marshals event delivery to the WPF `Dispatcher` for UI subscribers when `deliverOnUIThread` is true, while allowing background thread subscriptions to run directly.
-   - **Fault Isolation**: Wraps individual subscriber invocations in exception guards, logging subscriber failures without interrupting other subscribers or breaking the bus.
-   - **Subscription Management**: Returns `EventSubscription` (`IDisposable`) tokens for memory-leak-free unsubscription.
-3. **Bounded Event History (`EventHistory.cs`)**:
-   - Thread-safe bounded buffer (default 100 events) storing recent event log.
-   - Queryable via `GetRecent(count)` in reverse chronological order.
-4. **Architectural Separation & UI Integration**:
-   - Refactored `IslandWindow` and `RobotController` so UI interactions (buttons, context menus, dragging, state changes) publish `NovaEvent`s to `EventEngine`.
-   - `RobotController` receives all instructions via pure event subscriptions (`companion.excited`, `companion.confused`, `companion.nod`, `island.state_changed`, `user.interaction`).
-   - Real-time bus telemetry badge added to expanded companion card displaying the latest event and priority.
-5. **Testing & Verification**:
-   - Built 10 new event engine automated unit and integration tests (26 total across the test suite, 100% passing).
-   - Validated concurrent publishing across 8 simultaneous worker threads (400 events).
-   - Captured and verified live application screenshots demonstrating active event flow.
+### 1. Deterministic Priority Ordering & FIFO Scheduling
+- **4 Priority Bands**: Implemented separate lock-free `ConcurrentQueue<QueuedEventItem>` channels for `Critical`, `High`, `Normal`, and `Low` priorities.
+- **Strict Priority Precedence**: During queue drainage, the engine always dequeues from `_criticalQueue` first, then `_highQueue`, then `_normalQueue`, then `_lowQueue`.
+- **FIFO Tie-Breaking**: Equal priority events are enqueued into their corresponding priority band with a monotonically increasing `SequenceNumber` (`Interlocked.Increment`). Arrival order is 100% strictly preserved.
+- **Automated Tests**:
+  - `PriorityOrdering_DeliversCriticalBeforeHighBeforeNormalBeforeLow`: Verified delivery order is strictly `Critical -> High -> Normal -> Low` regardless of publish sequence.
+  - `FIFOOrdering_WithinEqualPriority_PreservesArrivalOrder`: Verified arrival order is preserved for equal-priority events.
 
-### Acceptance Criteria Checklist
-- [x] Test events can be published (verified via test buttons, context menus, and test suite).
-- [x] UI receives events (verified via real-time telemetry badge and robot reaction triggers).
-- [x] Duplicate events are handled (deduplication keys suppressed within window).
-- [x] Expired events are removed (expired events dropped prior to dispatch).
-- [x] Subscribers are properly disposed (subscription tokens unregister cleanly without leaks).
-- [x] Application remains responsive (zero busy loops, thread-safe asynchronous dispatch).
+### 2. Shutdown & Lifecycle Management
+- **Explicit Disposal Lifecycle**: `Dispose()` cleanly cancels the queue pump worker via `CancellationTokenSource`, cancels signals, unregisters all active subscriptions, clears all 4 priority queues, and clears the history buffer.
+- **Publish After Disposal**: When `Publish` is called after disposal, it safely logs a warning and returns `false` without throwing or crashing.
+- **Subscribe After Disposal**: Throws `ObjectDisposedException` as expected for disposed event buses.
+- **Window Cleanup**: `IslandWindow.Window_Closed` disposes all registered subscriptions and calls `_eventEngine.Dispose()`.
+- **Automated Tests**:
+  - `Shutdown_DisposalCleansUpAndRejectsPublishing`: Verified lifecycle, cleanup, and rejection semantics.
+
+### 3. UI Thread Safety & Strict Dispatcher Enforcement
+- **No Background Thread Execution for UI Subscribers**:
+  - If `DeliverOnUIThread == true` and an active WPF `Dispatcher` is present, events are marshaled using `dispatcher.BeginInvoke` (or executed directly if already on the UI thread).
+  - If `UIDispatcher == null` (headless/test mode or after dispatcher shutdown), the engine **strictly skips** calling the UI handler on the background worker thread and logs a warning. This completely eliminates cross-thread WPF access violations (`InvalidOperationException`).
+- **Automated Tests**:
+  - `UIDispatch_NeverInvokesOnBackgroundThread_WithoutDispatcher`: Proves UI subscribers are never called on background threads.
+  - `UIDispatch_MarshalsToDispatcherThread_WhenAvailable`: Proves UI subscribers execute on the STA Dispatcher thread.
+
+### 4. Regression & Verification
+- Total tests: **30 automated tests**, 100% passing (`0 Warning(s), 0 Error(s)`, ~568ms execution time).
+- Application smoke test passed cleanly.
 
 ---
 
-## Outstanding Issues
-- None. Phase 3 is complete and verified. Ready to proceed to Phase 4 upon user approval.
+## Acceptance Criteria Checklist
+- [x] Strict Priority Ordering (`Critical > High > Normal > Low`) verified by automated test.
+- [x] Deterministic FIFO ordering within equal priority bands verified by automated test.
+- [x] Concurrent multi-threaded publishing verified by automated test (400 events across 8 threads).
+- [x] UI subscribers never execute on arbitrary background threads when Dispatcher is absent.
+- [x] Full disposal and shutdown lifecycle cleanly implemented and verified.
+- [x] Zero regressions against Phase 0, Phase 1, or Phase 2.

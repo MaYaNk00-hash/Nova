@@ -99,3 +99,4 @@ public sealed record NovaEvent
             payload: payload);
     }
 }
+
