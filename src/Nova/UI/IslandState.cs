@@ -20,11 +20,12 @@ public static class IslandDimensions
     public const double ExpandedCornerRadius = 24.0;
 
     public const double CompactWindowWidth = 260.0;
-    public const double CompactWindowHeight = 84.0;
+    public const double CompactWindowHeight = 74.0;
     public const double ExpandedWindowWidth = 960.0;
-    public const double ExpandedWindowHeight = 440.0;
+    public const double ExpandedHudWindowHeight = 152.0;   // Height in HUD mode (no click blocking below bar)
+    public const double ExpandedWindowHeight = 420.0;      // Height when Workspace drawer is open
 
     public const double TopMargin = 0.0;
-    public const int AnimationDurationMs = 300;
+    public const int AnimationDurationMs = 280;
 }
 

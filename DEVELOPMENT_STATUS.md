@@ -220,6 +220,32 @@
 
 ---
 
+## Dynamic Island UX Optimizations & Bug Fixes
+
+### 1. Genuine Dynamic Island Interaction Model
+- **Auto-Collapse on Click-Away (`Window_Deactivated`)**: When user clicks another application or browser tab, the island automatically retracts with smooth spring physics back to the compact top notch (Apple Dynamic Island parity).
+- **Always-on-Top & Pinned State (`📌`)**: Added pin toggle button. When pinned (`_isPinned = true`), the island stays locked open on top of other applications; when unpinned (default), it dismisses effortlessly on blur.
+- **Keyboard Shortcuts**: `Escape` key immediately collapses expanded slides/HUD back to compact pill; `Space` key toggles play/pause on active media.
+- **Notch Home Bar Handle (`—`)**: Clicking the bottom pill handle acts as a notch collapse trigger, returning smoothly from workspace slides to HUD or compact.
+
+### 2. Desktop Hit-Testing & Click-Blocker Bug Fix
+- **Issue**: Previously, in HUD mode `Window.Height` was set to `440.0` while `PillBorder.Height` was `126.0`, causing 314px of transparent WPF window to block mouse clicks to underlying browser tabs and desktop icons.
+- **Fix**: Added dynamic `ExpandedHudWindowHeight = 152.0`. The window footprint now hugs the HUD pill precisely, leaving 100% of the screen below completely click-through.
+
+### 3. Resize Jump & Clipping Bug Fix
+- **Issue**: On collapsing from expanded (920px) to compact (210px), the outer WPF `Window.Width` abruptly snapped to 260px at 120ms while the pill was still animating down, resulting in visual clipping and sudden jump artifacts.
+- **Fix**: Window boundary resizing is now synchronized to `animWidth.Completed`. The window frame stays full-width until the pill finishes morphing smoothly, producing seamless, stutter-free animations.
+
+### 4. Interactive Media & System Controls
+- **Interactive Album Art**: Clicking album cover artwork toggles Play/Pause or launches YouTube Music with an appreciative robot companion nod.
+- **Live Timeline Ticker & Seeking**: Playback elapsed time increments every second during active playback (`00:41 -> 00:42`), advancing the white timeline bar; clicking the timeline scrubs to the selected timestamp.
+- **Animated Audio Equalizer Waves**: Dynamic 220ms timer cycles wave frames (` ▂▃`, `▃▅▃`, `▂▅▇`, `▇▅▃`) in vibrant cyan next to the track title when audio is playing, turning off when paused to maintain zero idle CPU overhead.
+- **Mouse Wheel Volume Capsule**: Scrolling the mouse wheel over the volume pill adjusts volume smoothly (0–100%) in 5% increments with live blue fill animation and "MUTE" in red when 0; clicking toggles mute.
+- **Specular Glass Sheen Sweep**: Expanding the island triggers a diagonal gradient sheen sweep (`TranslateTransform.X`) across the glossy obsidian pill surface.
+- **Compact Hover Peek**: Hovering over the compact pill subtly expands it (1.03x scale via `CubicEase`) and intensifies the ambient cyan glow.
+
+---
+
 ## Acceptance Criteria Checklist
 - [x] Investigated supported Windows notification APIs and documented privacy limitations honestly.
 - [x] Proved real Windows OS security boundary via `UserNotificationListener` queries returning `Denied` for unpackaged desktop mode.

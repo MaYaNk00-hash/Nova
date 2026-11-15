@@ -8,6 +8,7 @@ using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
+using System.Windows.Media.Effects;
 using System.Windows.Threading;
 using Nova.Core;
 using Nova.Events;
@@ -44,7 +45,16 @@ public partial class IslandWindow : Window
     private MediaSessionSnapshot? _lastMediaSnapshot;
     private bool _isManuallyPositioned = false;
     private bool _isTransitioning = false;
+    private bool _isPinned = false;
     private SlideView _currentSlide = SlideView.Hud;
+
+    private readonly DispatcherTimer _equalizerTimer;
+    private static readonly string[] WaveFrames = new[] { " ▂▃", "▃▅▃", "▂▅▇", "▇▅▃", "▅▃▂", "▃▂ " };
+    private int _waveIndex = 0;
+    private TimeSpan _playbackElapsed = TimeSpan.FromSeconds(41);
+    private TimeSpan _playbackTotal = TimeSpan.FromSeconds(184);
+    private int _currentVolume = 100;
+    private bool _isMuted = false;
 
     private List<TodoItem> _todos = new();
     private string _todoFilter = "All";
@@ -83,6 +93,13 @@ public partial class IslandWindow : Window
             Interval = TimeSpan.FromSeconds(1)
         };
         _clockTimer.Tick += ClockTimer_Tick;
+
+        // Equalizer wave animation timer (active only during media playback)
+        _equalizerTimer = new DispatcherTimer
+        {
+            Interval = TimeSpan.FromMilliseconds(220)
+        };
+        _equalizerTimer.Tick += EqualizerTimer_Tick;
 
         // Debounced notes save timer
         _notesSaveTimer = new DispatcherTimer
@@ -263,6 +280,52 @@ public partial class IslandWindow : Window
         UpdateSystemMonitor();
         _notificationService.PruneExpired();
         UpdateNotificationUI();
+
+        // Advance live track timeline if media is playing
+        if (_lastMediaSnapshot?.IsPlaying == true)
+        {
+            _playbackElapsed = _playbackElapsed.Add(TimeSpan.FromSeconds(1));
+            if (_playbackElapsed > _playbackTotal)
+            {
+                _playbackElapsed = TimeSpan.Zero;
+            }
+            UpdateTimelineUI();
+        }
+    }
+
+    private void EqualizerTimer_Tick(object? sender, EventArgs e)
+    {
+        _waveIndex = (_waveIndex + 1) % WaveFrames.Length;
+        var wave = WaveFrames[_waveIndex];
+
+        if (CompactMediaVisualizer != null && CompactMediaVisualizer.Visibility == Visibility.Visible)
+        {
+            CompactMediaVisualizer.Text = wave;
+        }
+
+        if (MediaVisualizerText != null && MediaVisualizerText.Visibility == Visibility.Visible)
+        {
+            MediaVisualizerText.Text = wave;
+        }
+    }
+
+    private void UpdateTimelineUI()
+    {
+        if (HudProgressElapsedText != null)
+        {
+            HudProgressElapsedText.Text = _playbackElapsed.ToString(@"mm\:ss");
+        }
+        if (HudProgressTotalText != null)
+        {
+            HudProgressTotalText.Text = _playbackTotal.ToString(@"mm\:ss");
+        }
+        if (HudProgressBar != null)
+        {
+            double trackWidth = 110.0;
+            double fraction = _playbackElapsed.TotalSeconds / Math.Max(1.0, _playbackTotal.TotalSeconds);
+            double targetWidth = Math.Clamp(fraction * trackWidth, 4.0, trackWidth);
+            HudProgressBar.Width = targetWidth;
+        }
     }
 
     private void UpdateClock()
@@ -423,21 +486,12 @@ public partial class IslandWindow : Window
             targetPillHeight = IslandDimensions.CompactHeight;
             targetCornerRadius = IslandDimensions.CompactCornerRadius;
 
-            var fadeExpanded = new DoubleAnimation(1.0, 0.0, TimeSpan.FromMilliseconds(120));
+            var fadeExpanded = new DoubleAnimation(1.0, 0.0, TimeSpan.FromMilliseconds(100));
             fadeExpanded.Completed += (s, e) =>
             {
                 ExpandedPanel.Visibility = Visibility.Collapsed;
                 CompactPanel.Visibility = Visibility.Visible;
-                CompactPanel.BeginAnimation(OpacityProperty, new DoubleAnimation(0.0, 1.0, TimeSpan.FromMilliseconds(160)));
-
-                Width = IslandDimensions.CompactWindowWidth;
-                Height = IslandDimensions.CompactWindowHeight;
-                var workArea = ScreenHelper.GetWorkingArea(this);
-                Top = workArea.Top + IslandDimensions.TopMargin;
-                if (!_isManuallyPositioned)
-                {
-                    Left = workArea.Left + (workArea.Width - Width) / 2.0;
-                }
+                CompactPanel.BeginAnimation(OpacityProperty, new DoubleAnimation(0.0, 1.0, TimeSpan.FromMilliseconds(140)));
             };
             ExpandedPanel.BeginAnimation(OpacityProperty, fadeExpanded);
         }
@@ -453,7 +507,7 @@ public partial class IslandWindow : Window
             }
 
             Width = IslandDimensions.ExpandedWindowWidth;
-            Height = IslandDimensions.ExpandedWindowHeight;
+            Height = _currentSlide == SlideView.Hud ? IslandDimensions.ExpandedHudWindowHeight : IslandDimensions.ExpandedWindowHeight;
             var workArea = ScreenHelper.GetWorkingArea(this);
             Top = workArea.Top + IslandDimensions.TopMargin;
             if (!_isManuallyPositioned)
@@ -461,7 +515,7 @@ public partial class IslandWindow : Window
                 Left = workArea.Left + (workArea.Width - Width) / 2.0;
             }
 
-            var fadeCompact = new DoubleAnimation(1.0, 0.0, TimeSpan.FromMilliseconds(120));
+            var fadeCompact = new DoubleAnimation(1.0, 0.0, TimeSpan.FromMilliseconds(100));
             fadeCompact.Completed += (s, e) =>
             {
                 CompactPanel.Visibility = Visibility.Collapsed;
@@ -470,7 +524,7 @@ public partial class IslandWindow : Window
                 {
                     HeaderTabsRow.Visibility = _currentSlide == SlideView.Hud ? Visibility.Collapsed : Visibility.Visible;
                 }
-                ExpandedPanel.BeginAnimation(OpacityProperty, new DoubleAnimation(0.0, 1.0, TimeSpan.FromMilliseconds(160)));
+                ExpandedPanel.BeginAnimation(OpacityProperty, new DoubleAnimation(0.0, 1.0, TimeSpan.FromMilliseconds(140)));
             };
             CompactPanel.BeginAnimation(OpacityProperty, fadeCompact);
         }
@@ -490,6 +544,17 @@ public partial class IslandWindow : Window
 
         animWidth.Completed += (s, e) =>
         {
+            if (targetState == IslandState.Compact)
+            {
+                Width = IslandDimensions.CompactWindowWidth;
+                Height = IslandDimensions.CompactWindowHeight;
+                var workArea = ScreenHelper.GetWorkingArea(this);
+                Top = workArea.Top + IslandDimensions.TopMargin;
+                if (!_isManuallyPositioned)
+                {
+                    Left = workArea.Left + (workArea.Width - Width) / 2.0;
+                }
+            }
             _isTransitioning = false;
         };
 
@@ -499,8 +564,8 @@ public partial class IslandWindow : Window
 
         if (PillGlossShine != null)
         {
-            var animShineCorner = new CornerRadiusAnimation(PillGlossShine.CornerRadius, new CornerRadius(0, 0, 0, 0), duration) { EasingFunction = ease };
-            PillGlossShine.BeginAnimation(Border.CornerRadiusProperty, animShineCorner);
+            var animShine = new DoubleAnimation(0.2, 0.75, TimeSpan.FromMilliseconds(180)) { AutoReverse = true };
+            PillGlossShine.BeginAnimation(OpacityProperty, animShine);
         }
 
         // Keep centered horizontally if not manually dragged
@@ -540,11 +605,20 @@ public partial class IslandWindow : Window
     public void ToggleAlwaysOnTop()
     {
         Topmost = !Topmost;
+        _isPinned = Topmost;
         var menu = (ContextMenu)Resources["IslandContextMenu"];
-        var alwaysOnTopItem = (MenuItem)menu.Items[3];
-        alwaysOnTopItem.IsChecked = Topmost;
-        PinButton.Foreground = Topmost ? System.Windows.Media.Brushes.Cyan : System.Windows.Media.Brushes.Gray;
-        AppLogger.Info($"Always On Top set to: {Topmost}.");
+        if (menu.Items.Count > 3 && menu.Items[3] is MenuItem alwaysOnTopItem)
+        {
+            alwaysOnTopItem.IsChecked = Topmost;
+        }
+        if (PinButton != null)
+        {
+            PinButton.Foreground = _isPinned 
+                ? new SolidColorBrush(Color.FromRgb(0, 242, 254)) 
+                : new SolidColorBrush(Color.FromRgb(148, 163, 184));
+            PinButton.ToolTip = _isPinned ? "Pinned: Will stay expanded & on top" : "Unpinned: Auto-collapses on click away";
+        }
+        AppLogger.Info($"Always On Top and Pin state set to: {Topmost}.");
     }
 
     private void Pill_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -667,6 +741,7 @@ public partial class IslandWindow : Window
         }
 
         double targetHeight = targetSlide == SlideView.Hud ? IslandDimensions.ExpandedHeight : IslandDimensions.ExpandedWorkspaceHeight;
+        Height = targetSlide == SlideView.Hud ? IslandDimensions.ExpandedHudWindowHeight : IslandDimensions.ExpandedWindowHeight;
         var animHeight = new DoubleAnimation(PillBorder.ActualHeight, targetHeight, TimeSpan.FromMilliseconds(240))
         {
             EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
@@ -753,35 +828,183 @@ public partial class IslandWindow : Window
 
     private void HandleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
-        if (_currentSlide == SlideView.Hud)
+        if (CurrentState == IslandState.Expanded)
         {
-            SwitchToSlide(SlideView.Notes);
+            if (_currentSlide != SlideView.Hud)
+            {
+                SwitchToSlide(SlideView.Hud);
+            }
+            else
+            {
+                TransitionTo(IslandState.Compact);
+            }
         }
         else
         {
-            SwitchToSlide(SlideView.Hud);
+            TransitionTo(IslandState.Expanded);
         }
         e.Handled = true;
     }
 
-    private void VolumePill_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    private void VolumeControl_MouseWheel(object sender, MouseWheelEventArgs e)
     {
-        if (HudVolumeLevelText != null && HudVolumePill != null)
+        int delta = e.Delta > 0 ? 5 : -5;
+        SetVolume(_currentVolume + delta);
+        e.Handled = true;
+    }
+
+    private void SetVolume(int newVol, bool toggleMute = false)
+    {
+        if (toggleMute)
         {
-            if (HudVolumeLevelText.Text == "100")
+            _isMuted = !_isMuted;
+        }
+        else
+        {
+            _isMuted = false;
+            _currentVolume = Math.Clamp(newVol, 0, 100);
+            if (_currentVolume == 0) _isMuted = true;
+        }
+
+        if (HudVolumeLevelText != null)
+        {
+            if (_isMuted)
             {
                 HudVolumeLevelText.Text = "MUTE";
                 HudVolumeLevelText.Foreground = new SolidColorBrush(Color.FromRgb(239, 68, 68));
-                HudVolumePill.Opacity = 0.35;
             }
             else
             {
-                HudVolumeLevelText.Text = "100";
+                HudVolumeLevelText.Text = $"{_currentVolume}";
                 HudVolumeLevelText.Foreground = new SolidColorBrush(Color.FromRgb(226, 232, 240));
-                HudVolumePill.Opacity = 1.0;
             }
         }
+
+        if (HudVolumePill != null)
+        {
+            double maxH = 46.0;
+            double targetH = _isMuted ? 8.0 : Math.Max(8.0, (_currentVolume / 100.0) * maxH);
+            var animH = new DoubleAnimation(HudVolumePill.Height, targetH, TimeSpan.FromMilliseconds(180))
+            {
+                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+            };
+            HudVolumePill.BeginAnimation(HeightProperty, animH);
+            HudVolumePill.Opacity = _isMuted ? 0.35 : 1.0;
+        }
+    }
+
+    private void VolumePill_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        SetVolume(_currentVolume, toggleMute: true);
         e.Handled = true;
+    }
+
+    private void AlbumArtwork_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (MediaPlayPauseBtn != null && MediaPlayPauseBtn.IsEnabled)
+        {
+            MediaPlayPause_Click(sender, e);
+        }
+        else
+        {
+            OpenYouTubeMusic_Click(sender, e);
+        }
+        _robotController.TriggerNodTestEvent();
+        e.Handled = true;
+    }
+
+    private void TimelineTrack_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is FrameworkElement track && track.ActualWidth > 0)
+        {
+            var pos = e.GetPosition(track);
+            double fraction = Math.Clamp(pos.X / track.ActualWidth, 0.0, 1.0);
+            _playbackElapsed = TimeSpan.FromSeconds(fraction * _playbackTotal.TotalSeconds);
+            UpdateTimelineUI();
+            _robotController.TriggerNodTestEvent();
+        }
+        e.Handled = true;
+    }
+
+    private void PillBorder_MouseEnter(object sender, MouseEventArgs e)
+    {
+        if (CurrentState == IslandState.Compact)
+        {
+            var animScale = new DoubleAnimation(1.0, 1.03, TimeSpan.FromMilliseconds(160))
+            {
+                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+            };
+            PillScaleTransform.BeginAnimation(ScaleTransform.ScaleXProperty, animScale);
+            PillScaleTransform.BeginAnimation(ScaleTransform.ScaleYProperty, animScale);
+
+            if (PillBorder.Effect is DropShadowEffect shadow)
+            {
+                var animGlow = new DoubleAnimation(shadow.Opacity, 1.0, TimeSpan.FromMilliseconds(160));
+                shadow.BeginAnimation(DropShadowEffect.OpacityProperty, animGlow);
+            }
+        }
+    }
+
+    private void PillBorder_MouseLeave(object sender, MouseEventArgs e)
+    {
+        if (CurrentState == IslandState.Compact)
+        {
+            var animScale = new DoubleAnimation(PillScaleTransform.ScaleX, 1.0, TimeSpan.FromMilliseconds(200))
+            {
+                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+            };
+            PillScaleTransform.BeginAnimation(ScaleTransform.ScaleXProperty, animScale);
+            PillScaleTransform.BeginAnimation(ScaleTransform.ScaleYProperty, animScale);
+
+            if (PillBorder.Effect is DropShadowEffect shadow)
+            {
+                var animGlow = new DoubleAnimation(shadow.Opacity, 0.85, TimeSpan.FromMilliseconds(200));
+                shadow.BeginAnimation(DropShadowEffect.OpacityProperty, animGlow);
+            }
+        }
+    }
+
+    private void Window_Deactivated(object? sender, EventArgs e)
+    {
+        var contextMenu = (ContextMenu)Resources["IslandContextMenu"];
+        if (contextMenu.IsOpen) return;
+
+        // Auto-collapse to compact notch when user clicks away to another application (unless pinned)
+        if (!_isPinned && CurrentState == IslandState.Expanded && !_isTransitioning)
+        {
+            if (_currentSlide != SlideView.Hud)
+            {
+                SwitchToSlide(SlideView.Hud);
+            }
+            TransitionTo(IslandState.Compact);
+        }
+    }
+
+    private void Window_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Escape)
+        {
+            if (CurrentState == IslandState.Expanded)
+            {
+                if (_currentSlide != SlideView.Hud)
+                {
+                    SwitchToSlide(SlideView.Hud);
+                }
+                else
+                {
+                    TransitionTo(IslandState.Compact);
+                }
+                e.Handled = true;
+            }
+        }
+        else if (e.Key == Key.Space && CurrentState == IslandState.Expanded && _currentSlide == SlideView.Hud)
+        {
+            if (MediaPlayPauseBtn != null && MediaPlayPauseBtn.IsEnabled)
+            {
+                MediaPlayPause_Click(this, new RoutedEventArgs());
+                e.Handled = true;
+            }
+        }
     }
 
     // QUICK NOTES LOGIC
@@ -1192,9 +1415,19 @@ public partial class IslandWindow : Window
             {
                 HudProgressBar.Width = snapshot.IsPlaying ? 55 : 20;
             }
+
+            if (snapshot.IsPlaying)
+            {
+                if (!_equalizerTimer.IsEnabled) _equalizerTimer.Start();
+            }
+            else
+            {
+                if (_equalizerTimer.IsEnabled) _equalizerTimer.Stop();
+            }
         }
         else
         {
+            if (_equalizerTimer.IsEnabled) _equalizerTimer.Stop();
             // Compact View - Revert to default
             if (CompactMediaPanel != null && CompactDefaultPanel != null)
             {
@@ -1422,6 +1655,7 @@ public partial class IslandWindow : Window
     private void Window_Closed(object? sender, EventArgs e)
     {
         _clockTimer.Stop();
+        _equalizerTimer.Stop();
         _notesSaveTimer.Stop();
         _focusTimer.Stop();
 
