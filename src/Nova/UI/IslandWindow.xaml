@@ -15,6 +15,7 @@
         ResizeMode="NoResize"
         Width="960"
         Height="440"
+        FontFamily="Segoe UI Variable Display, Segoe UI, -apple-system, sans-serif"
         UseLayoutRounding="True"
         SnapsToDevicePixels="True"
         TextOptions.TextFormattingMode="Display"
@@ -202,12 +203,24 @@
             </ContextMenu.Resources>
             <MenuItem Header="Expand / HUD Dashboard" Click="MenuExpand_Click" FontWeight="SemiBold"/>
             <MenuItem Header="Compact Pill" Click="MenuCompact_Click"/>
+            <MenuItem Header="Minimize to Circle Bubble" Click="MenuCircle_Click"/>
             <MenuItem Header="Reset Position (Top Center)" Click="MenuResetPosition_Click"/>
             <MenuItem x:Name="MenuAlwaysOnTop" Header="Always On Top" IsCheckable="True" IsChecked="True" Click="MenuAlwaysOnTop_Click"/>
+            <MenuItem x:Name="MenuFollowCursorRoot" Header="👀 Eye Tracking (Follow Cursor)" IsCheckable="True" IsChecked="True" Click="MenuFollowCursor_Click"/>
+            <MenuItem x:Name="MenuLaunchAtStartup" Header="🚀 Launch with Windows" IsCheckable="True" Click="MenuLaunchAtStartup_Click"/>
+            <Separator/>
+            <MenuItem Header="🎨 Pill Transparency">
+                <MenuItem x:Name="MenuTranslucentGlass" Header="Translucent Glass (Default)" Click="MenuTranslucentGlass_Click" IsCheckable="True" IsChecked="True"/>
+                <MenuItem x:Name="MenuUltraClear" Header="Ultra Clear (Transparent)" Click="MenuUltraClear_Click" IsCheckable="True"/>
+                <MenuItem x:Name="MenuFrostedGlass" Header="Frosted Glass" Click="MenuFrostedGlass_Click" IsCheckable="True"/>
+                <MenuItem x:Name="MenuSolidDark" Header="Solid Dark (Opaque)" Click="MenuSolidDark_Click" IsCheckable="True"/>
+            </MenuItem>
             <Separator/>
             <MenuItem Header="🎵 Connect YouTube Music" Click="MenuOpenYouTubeMusic_Click" FontWeight="SemiBold"/>
             <Separator/>
             <MenuItem Header="Robot Companion">
+                <MenuItem x:Name="MenuFollowCursor" Header="👀 Eye Tracking (Follow Cursor)" IsCheckable="True" IsChecked="True" Click="MenuFollowCursor_Click"/>
+                <Separator/>
                 <MenuItem Header="Test: ✨ Excited" Click="MenuTestExcited_Click"/>
                 <MenuItem Header="Test: ❓ Confused" Click="MenuTestConfused_Click"/>
                 <MenuItem Header="Test: 👋 Nod" Click="MenuTestNod_Click"/>
@@ -228,36 +241,38 @@
     <Grid HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,10">
         <!-- Main Island Pill Border with Obsidian Gloss & Cybernetic Specular Rim (Height increased by 15%, docked firmly to top) -->
         <Border x:Name="PillBorder"
-                Width="210"
-                Height="48"
-                CornerRadius="0,0,24,24"
+                Width="156"
+                Height="46"
+                CornerRadius="0,0,23,23"
                 BorderThickness="1.2,0,1.2,1.2"
                 ClipToBounds="True"
                 Cursor="Hand"
                 VerticalAlignment="Top"
+                RenderTransformOrigin="0.5,0"
                 MouseEnter="PillBorder_MouseEnter"
                 MouseLeave="PillBorder_MouseLeave"
-                MouseLeftButtonDown="Pill_MouseLeftButtonDown">
+                MouseLeftButtonDown="Pill_MouseLeftButtonDown"
+                MouseDown="Pill_MouseDown">
             <Border.RenderTransform>
-                <ScaleTransform x:Name="PillScaleTransform" CenterX="105" CenterY="0" ScaleX="1.0" ScaleY="1.0"/>
+                <ScaleTransform x:Name="PillScaleTransform" CenterX="0" CenterY="0" ScaleX="1.0" ScaleY="1.0"/>
             </Border.RenderTransform>
             <Border.BorderBrush>
                 <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                    <GradientStop Color="#1E293B" Offset="0.0"/>
-                    <GradientStop Color="#38BDF8" Offset="0.25"/>
-                    <GradientStop Color="#1E293B" Offset="0.75"/>
-                    <GradientStop Color="#0F172A" Offset="1.0"/>
+                    <GradientStop Color="#501E293B" Offset="0.0"/>
+                    <GradientStop Color="#9538BDF8" Offset="0.25"/>
+                    <GradientStop Color="#501E293B" Offset="0.75"/>
+                    <GradientStop Color="#300F172A" Offset="1.0"/>
                 </LinearGradientBrush>
             </Border.BorderBrush>
             <Border.Background>
                 <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                    <GradientStop Color="#0B0F19" Offset="0.0"/>
-                    <GradientStop Color="#060910" Offset="0.5"/>
-                    <GradientStop Color="#020408" Offset="1.0"/>
+                    <GradientStop Color="#320B111C" Offset="0.0"/>
+                    <GradientStop Color="#22060910" Offset="0.5"/>
+                    <GradientStop Color="#18020408" Offset="1.0"/>
                 </LinearGradientBrush>
             </Border.Background>
             <Border.Effect>
-                <DropShadowEffect BlurRadius="28" ShadowDepth="4" Direction="270" Color="#000000" Opacity="0.85"/>
+                <DropShadowEffect x:Name="PillDropShadow" BlurRadius="14" ShadowDepth="2" Direction="270" Color="#000000" Opacity="0.25"/>
             </Border.Effect>
 
             <Grid>
@@ -266,6 +281,7 @@
                         Height="14" 
                         VerticalAlignment="Top" 
                         CornerRadius="0,0,0,0" 
+                        Opacity="0.12"
                         IsHitTestVisible="False">
                     <Border.Background>
                         <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
@@ -276,122 +292,169 @@
                     </Border.Background>
                 </Border>
 
-                <!-- COMPACT STATE VIEW (210x48 Sleek Pill with +15% height) -->
-                <Grid x:Name="CompactPanel" Height="48" VerticalAlignment="Center" Margin="10,0">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
+                <!-- CIRCLE BUBBLE STATE VIEW (48x48 Mini Bubble Orb) -->
+                <Grid x:Name="CirclePanel" 
+                      Width="48" 
+                      Height="48" 
+                      HorizontalAlignment="Center" 
+                      VerticalAlignment="Center" 
+                      Opacity="0" 
+                      Visibility="Collapsed">
+                    <!-- Ambient Pulse Ring -->
+                    <Ellipse x:Name="CirclePulseRing" 
+                             Width="42" 
+                             Height="42" 
+                             Stroke="#00F2FE" 
+                             StrokeThickness="1" 
+                             Opacity="0.45" 
+                             HorizontalAlignment="Center" 
+                             VerticalAlignment="Center" 
+                             IsHitTestVisible="False">
+                        <Ellipse.RenderTransform>
+                            <ScaleTransform x:Name="CirclePulseScale" CenterX="21" CenterY="21" ScaleX="1.0" ScaleY="1.0"/>
+                        </Ellipse.RenderTransform>
+                    </Ellipse>
 
-                    <!-- Robot Mascot Companion (Compact 30px with glowing cyan LED eyes) -->
-                    <robot:RobotCompanion x:Name="CompactRobot" 
-                                          CompanionSize="30" 
-                                          Grid.Column="0" 
+                    <!-- Mini Robot Mascot (Noticeable 32px) -->
+                    <robot:RobotCompanion x:Name="CircleRobot" 
+                                          CompanionSize="32" 
+                                          HorizontalAlignment="Center" 
                                           VerticalAlignment="Center" 
-                                          Margin="0,0,8,0"/>
+                                          IsHitTestVisible="False"/>
 
-                    <!-- Default Name & Status Badge -->
-                    <StackPanel x:Name="CompactDefaultPanel" Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                        <TextBlock Text="NOVA" 
-                                   FontWeight="Bold" 
-                                   FontSize="12.5" 
-                                   Foreground="#F8FAFC" 
-                                   VerticalAlignment="Center"/>
-                        <Border Background="#0C1424" 
-                                BorderBrush="#00F2FE" 
-                                BorderThickness="0.8" 
-                                CornerRadius="4" 
-                                Padding="5,1.5" 
-                                Margin="7,0,0,0" 
-                                VerticalAlignment="Center">
-                            <TextBlock Text="READY" 
-                                       FontSize="8" 
+                    <!-- Mini Activity Indicator Glow Dot -->
+                    <Border x:Name="CircleStatusDot" 
+                            Width="7" 
+                            Height="7" 
+                            CornerRadius="3.5" 
+                            Background="#00F2FE" 
+                            BorderBrush="#4000F2FE" 
+                            BorderThickness="0.8" 
+                            HorizontalAlignment="Right" 
+                            VerticalAlignment="Top" 
+                            Margin="0,5,5,0" 
+                            ToolTip="NOVA Bubble Mode">
+                        <Border.Effect>
+                            <DropShadowEffect Color="#00F2FE" BlurRadius="4" ShadowDepth="0" Opacity="0.9"/>
+                        </Border.Effect>
+                    </Border>
+                </Grid>
+
+                <!-- COMPACT STATE VIEW (Minimalist Notch: Big Robot Mascot Face & Dynamic Media Expansion) -->
+                <Grid x:Name="CompactPanel" VerticalAlignment="Top" HorizontalAlignment="Stretch">
+                    <Grid.RowDefinitions>
+                        <!-- Row 0: Mascot Face -->
+                        <RowDefinition Height="46"/>
+                        <!-- Row 1: Media Bar (slides in below robot when video/music active) -->
+                        <RowDefinition Height="Auto"/>
+                        <!-- Row 2: Notification Bar (slides in below when notification active) -->
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Row 0: Big, Noticeable Robot Mascot Companion Face (Centered in notch, glowing cyan eyes tracking cursor) -->
+                    <robot:RobotCompanion x:Name="CompactRobot" 
+                                          Grid.Row="0"
+                                          CompanionSize="38" 
+                                          HorizontalAlignment="Center" 
+                                          VerticalAlignment="Center"/>
+
+                    <!-- Hidden helper elements maintaining backward compatibility with state & event systems -->
+                    <StackPanel x:Name="CompactDefaultPanel" Visibility="Visible" Width="0" Height="0" Opacity="0" IsHitTestVisible="False"/>
+
+                    <!-- Row 1: Compact Media Bar (Cleanly expanded below robot's face without overlapping) -->
+                    <Border Grid.Row="1"
+                            x:Name="CompactMediaPanel" 
+                            VerticalAlignment="Center" 
+                            Visibility="Collapsed"
+                            Margin="10,0,10,6"
+                            Padding="8,4,8,4"
+                            Background="#1E0B132B"
+                            BorderBrush="#3338BDF8"
+                            BorderThickness="1"
+                            CornerRadius="12">
+                        <Grid VerticalAlignment="Center">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock x:Name="CompactMediaVisualizer" 
+                                       Text="ılıll" 
+                                       FontSize="11" 
                                        FontWeight="Bold" 
-                                       Foreground="#00F2FE"/>
-                        </Border>
-                    </StackPanel>
+                                       Foreground="#00F2FE" 
+                                       VerticalAlignment="Center" 
+                                       Margin="0,0,6,0" 
+                                       Visibility="Visible"/>
+                            <TextBlock x:Name="CompactMediaText" 
+                                       Grid.Column="1" 
+                                       Text="Track • Artist" 
+                                       FontSize="11" 
+                                       FontWeight="Medium" 
+                                       Foreground="#F1F5F9" 
+                                       TextTrimming="CharacterEllipsis" 
+                                       VerticalAlignment="Center"/>
+                            <Button x:Name="CompactPlayPauseBtn" 
+                                    Grid.Column="2" 
+                                    Style="{StaticResource IconButton}" 
+                                    Content="▶" 
+                                    Width="22" 
+                                    Height="22" 
+                                    FontSize="10" 
+                                    Margin="4,0,0,0"
+                                    ToolTip="Toggle Play/Pause" 
+                                    Click="MediaPlayPause_Click"/>
+                        </Grid>
+                    </Border>
 
-                    <!-- Compact Media Bar (visible when media is active) -->
-                    <Grid x:Name="CompactMediaPanel" Grid.Column="1" VerticalAlignment="Center" Visibility="Collapsed" Margin="0,0,6,0">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <TextBlock x:Name="CompactMediaVisualizer" 
-                                   Text="ılıll" 
-                                   FontSize="11" 
-                                   FontWeight="Bold" 
-                                   Foreground="#00F2FE" 
-                                   VerticalAlignment="Center" 
-                                   Margin="0,0,5,0" 
-                                   Visibility="Collapsed"/>
-                        <TextBlock x:Name="CompactMediaText" 
-                                   Grid.Column="1" 
-                                   Text="Track • Artist" 
-                                   FontSize="11" 
-                                   FontWeight="Medium" 
-                                   Foreground="#E2E8F0" 
-                                   TextTrimming="CharacterEllipsis" 
-                                   VerticalAlignment="Center"/>
-                        <Button x:Name="CompactPlayPauseBtn" 
-                                Grid.Column="2" 
-                                Style="{StaticResource IconButton}" 
-                                Content="▶" 
-                                Width="24" 
-                                Height="24" 
-                                FontSize="10.5" 
-                                ToolTip="Toggle Play/Pause" 
-                                Click="MediaPlayPause_Click" 
-                                Margin="4,0,0,0"/>
-                    </Grid>
+                    <!-- Row 2: Compact Notification Bar (Cleanly expanded below robot's face) -->
+                    <Border Grid.Row="2"
+                            x:Name="CompactNotificationPanel" 
+                            VerticalAlignment="Center" 
+                            Visibility="Collapsed"
+                            Margin="10,0,10,6"
+                            Padding="8,4,8,4"
+                            Background="#1E1F1914"
+                            BorderBrush="#33D97706"
+                            BorderThickness="1"
+                            CornerRadius="12">
+                        <Grid VerticalAlignment="Center">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="🔔" FontSize="11" Foreground="#F59E0B" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                            <TextBlock x:Name="CompactNotificationText" 
+                                       Grid.Column="1" 
+                                       Text="Notification alert" 
+                                       FontSize="10.5" 
+                                       FontWeight="Medium" 
+                                       Foreground="#F8FAFC" 
+                                       TextTrimming="CharacterEllipsis" 
+                                       VerticalAlignment="Center"/>
+                            <Button x:Name="CompactDismissNotificationBtn" 
+                                    Grid.Column="2" 
+                                    Style="{StaticResource IconButton}" 
+                                    Content="✕" 
+                                    Width="20" 
+                                    Height="20" 
+                                    FontSize="9" 
+                                    Margin="4,0,0,0"
+                                    ToolTip="Dismiss Notification" 
+                                    Click="DismissCurrentNotification_Click"/>
+                        </Grid>
+                    </Border>
 
-                    <!-- Compact Notification Bar -->
-                    <Grid x:Name="CompactNotificationPanel" Grid.Column="1" VerticalAlignment="Center" Visibility="Collapsed" Margin="0,0,6,0">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Text="🔔" FontSize="11" Foreground="#F59E0B" VerticalAlignment="Center" Margin="0,0,5,0"/>
-                        <TextBlock x:Name="CompactNotificationText" 
-                                   Grid.Column="1" 
-                                   Text="Notification alert" 
-                                   FontSize="10.5" 
-                                   FontWeight="Medium" 
-                                   Foreground="#F8FAFC" 
-                                   TextTrimming="CharacterEllipsis" 
-                                   VerticalAlignment="Center"/>
-                        <Button x:Name="CompactDismissNotificationBtn" 
-                                Grid.Column="2" 
-                                Style="{StaticResource IconButton}" 
-                                Content="✕" 
-                                Width="20" 
-                                Height="20" 
-                                FontSize="9" 
-                                ToolTip="Dismiss Notification" 
-                                Click="DismissCurrentNotification_Click" 
-                                Margin="4,0,0,0"/>
-                    </Grid>
-
-                    <!-- Time Indicator -->
+                    <!-- Clock collapsed: Notch displays ONLY the big robot face and eyes in pure compact -->
                     <TextBlock x:Name="ClockText" 
-                               Grid.Column="2" 
                                Text="12:00" 
-                               FontSize="11.5" 
-                               Foreground="#94A3B8" 
-                               VerticalAlignment="Center" 
-                               Margin="0,0,8,0"/>
+                               Visibility="Collapsed"/>
 
-                    <!-- Expand Chevron Button -->
-                    <Button Grid.Column="3" 
-                            Style="{StaticResource IconButton}" 
-                            Content="▾" 
-                            FontSize="12.5" 
-                            ToolTip="Expand HUD Dashboard" 
-                            Click="ExpandButton_Click"/>
+                    <!-- Collapsed Minimize to Circle Button kept for backward reference -->
+                    <Button x:Name="BtnMinimizeToCircle" 
+                            Visibility="Collapsed"
+                            Click="CircleButton_Click"/>
                 </Grid>
 
                 <!-- EXPANDED STATE VIEW (Wide Panoramic HUD + Slides, 15% Taller & Roomier) -->
@@ -441,6 +504,12 @@
                                     FontSize="10.5" 
                                     ToolTip="Toggle Always On Top" 
                                     Click="PinButton_Click" 
+                                    Margin="0,0,4,0"/>
+                            <Button Style="{StaticResource IconButton}" 
+                                    Content="●" 
+                                    FontSize="9.5" 
+                                    ToolTip="Minimize to Bubble Circle" 
+                                    Click="CircleButton_Click" 
                                     Margin="0,0,4,0"/>
                             <Button Style="{StaticResource IconButton}" 
                                     Content="—" 
@@ -501,11 +570,11 @@
                                 <TranslateTransform x:Name="SlideHudTransform" X="0" Y="0"/>
                             </Grid.RenderTransform>
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="2.75*"/>
+                                <ColumnDefinition Width="3.1*"/>
                                 <ColumnDefinition Width="1"/>
                                 <ColumnDefinition Width="2.3*"/>
                                 <ColumnDefinition Width="1"/>
-                                <ColumnDefinition Width="3.05*"/>
+                                <ColumnDefinition Width="2.7*"/>
                             </Grid.ColumnDefinitions>
 
                             <!-- COLUMN 1: NOW PLAYING & MUSIC PLAYER -->
@@ -633,41 +702,86 @@
                                             Visibility="Collapsed"/>
                                     <TextBlock x:Name="MediaBadgeText" Visibility="Collapsed" Text="PLAYING"/>
 
-                                    <!-- Track Timeline Progress Bar -->
-                                    <Grid Margin="0,1,0,0">
+                                    <!-- Track Timeline Progress Bar & Time Stamps -->
+                                    <Grid Margin="0,3,0,0">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="Auto"/>
                                             <ColumnDefinition Width="*"/>
                                             <ColumnDefinition Width="Auto"/>
                                         </Grid.ColumnDefinitions>
                                         <TextBlock x:Name="HudProgressElapsedText" 
-                                                   Text="00:41" 
-                                                   FontSize="8.5" 
+                                                   Text="00:00" 
+                                                   FontSize="9.5" 
+                                                   FontWeight="SemiBold"
                                                    Foreground="#94A3B8" 
+                                                   Typography.NumeralAlignment="Tabular"
                                                    VerticalAlignment="Center" 
-                                                   Margin="0,0,6,0"/>
+                                                   Margin="0,0,7,0"/>
+                                        <!-- Generous 18px hit-test track with sleek visual bar and GPU transform thumb -->
                                         <Border Grid.Column="1" 
                                                 x:Name="HudTimelineTrack"
-                                                Height="6" 
-                                                Background="#1E293B" 
-                                                CornerRadius="3" 
+                                                Height="18" 
+                                                Background="Transparent" 
                                                 Cursor="Hand"
-                                                ToolTip="Click to Seek Timeline"
+                                                ToolTip="Click or drag to seek"
                                                 MouseLeftButtonDown="TimelineTrack_MouseLeftButtonDown"
+                                                MouseMove="TimelineTrack_MouseMove"
+                                                MouseLeftButtonUp="TimelineTrack_MouseLeftButtonUp"
+                                                MouseEnter="TimelineTrack_MouseEnter"
+                                                MouseLeave="TimelineTrack_MouseLeave"
+                                                LostMouseCapture="TimelineTrack_LostMouseCapture"
                                                 VerticalAlignment="Center">
-                                            <Border x:Name="HudProgressBar" 
-                                                    HorizontalAlignment="Left" 
-                                                    Width="50" 
-                                                    Background="#FFFFFF" 
-                                                    CornerRadius="3"/>
+                                            <Grid VerticalAlignment="Center" ClipToBounds="False">
+                                                <!-- Background Groove Track -->
+                                                <Border x:Name="HudGrooveBar"
+                                                        Height="5"
+                                                        Background="#1E293B"
+                                                        CornerRadius="2.5"
+                                                        VerticalAlignment="Center"/>
+                                                <!-- Luminous Gradient Fill Bar -->
+                                                <Border x:Name="HudProgressBar" 
+                                                        HorizontalAlignment="Left" 
+                                                        Width="0" 
+                                                        Height="5"
+                                                        CornerRadius="2.5"
+                                                        VerticalAlignment="Center">
+                                                    <Border.Background>
+                                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                                            <GradientStop Color="#00F2FE" Offset="0.0"/>
+                                                            <GradientStop Color="#38BDF8" Offset="0.6"/>
+                                                            <GradientStop Color="#FFFFFF" Offset="1.0"/>
+                                                        </LinearGradientBrush>
+                                                    </Border.Background>
+                                                </Border>
+                                                <!-- Glowing Scrubber Thumb Handle -->
+                                                <Border x:Name="HudScrubberThumb" 
+                                                        Width="12" 
+                                                        Height="12" 
+                                                        CornerRadius="6" 
+                                                        Background="#FFFFFF" 
+                                                        BorderBrush="#00F2FE"
+                                                        BorderThickness="1"
+                                                        HorizontalAlignment="Left" 
+                                                        VerticalAlignment="Center"
+                                                        IsHitTestVisible="False">
+                                                    <Border.RenderTransform>
+                                                        <TranslateTransform x:Name="HudScrubberThumbTransform" X="0" Y="0"/>
+                                                    </Border.RenderTransform>
+                                                    <Border.Effect>
+                                                        <DropShadowEffect Color="#00F2FE" BlurRadius="8" ShadowDepth="0" Opacity="0.95"/>
+                                                    </Border.Effect>
+                                                </Border>
+                                            </Grid>
                                         </Border>
                                         <TextBlock x:Name="HudProgressTotalText" 
                                                    Grid.Column="2" 
-                                                   Text="03:04" 
-                                                   FontSize="8.5" 
+                                                   Text="00:00" 
+                                                   FontSize="9.5" 
+                                                   FontWeight="SemiBold"
                                                    Foreground="#94A3B8" 
+                                                   Typography.NumeralAlignment="Tabular"
                                                    VerticalAlignment="Center" 
-                                                   Margin="6,0,0,0"/>
+                                                   Margin="7,0,0,0"/>
                                     </Grid>
                                 </StackPanel>
                             </Grid>
@@ -763,6 +877,7 @@
                                                FontSize="20" 
                                                FontWeight="Bold" 
                                                Foreground="#FFFFFF" 
+                                               Typography.NumeralAlignment="Tabular"
                                                HorizontalAlignment="Center" 
                                                Margin="0,1,0,0"/>
 
@@ -866,7 +981,7 @@
                                     <TextBlock Text="🔊" FontSize="9.5" Foreground="#38BDF8" HorizontalAlignment="Center" Margin="0,2,0,0"/>
                                 </StackPanel>
 
-                                <!-- Action Quick Buttons (Mascot & Settings) -->
+                                <!-- Action Quick Buttons (Mascot, Circle & Settings) -->
                                 <StackPanel Grid.Column="2" VerticalAlignment="Center">
                                     <Button x:Name="BtnHudMascot" 
                                             Style="{StaticResource IconButton}" 
@@ -876,7 +991,16 @@
                                             FontSize="12" 
                                             ToolTip="Switch to Mascot Companion" 
                                             Click="BtnHudMascot_Click" 
-                                            Margin="0,0,0,4"/>
+                                            Margin="0,0,0,3"/>
+                                    <Button x:Name="BtnHudCircle" 
+                                            Style="{StaticResource IconButton}" 
+                                            Content="●" 
+                                            Width="28" 
+                                            Height="20" 
+                                            FontSize="9" 
+                                            ToolTip="Minimize to Bubble Circle" 
+                                            Click="CircleButton_Click" 
+                                            Margin="0,0,0,3"/>
                                     <Button x:Name="BtnHudSettings" 
                                             Style="{StaticResource IconButton}" 
                                             Content="⚙" 
@@ -1066,6 +1190,7 @@
                                             <Button Style="{StaticResource IslandActionButton}" Content="✨ Happy" Click="BtnExcited_Click" Margin="0,0,5,5"/>
                                             <Button Style="{StaticResource IslandActionButton}" Content="❓ Confused" Click="BtnConfused_Click" Margin="0,0,5,5"/>
                                             <Button Style="{StaticResource IslandActionButton}" Content="👋 Nod" Click="BtnNod_Click" Margin="0,0,5,5"/>
+                                            <Button x:Name="BtnToggleEyeTracking" Style="{StaticResource IslandActionButton}" Content="👀 Toggle Eye Tracking" Click="BtnToggleEyeTracking_Click" Margin="0,0,5,5"/>
                                         </WrapPanel>
                                     </StackPanel>
                                 </Grid>

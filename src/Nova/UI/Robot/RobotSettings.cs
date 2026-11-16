@@ -9,6 +9,7 @@ public sealed class RobotSettings
     private AnimationIntensity _intensity = AnimationIntensity.Normal;
     private bool _reducedMotion = false;
     private bool _batterySaver = false;
+    private bool _followCursor = true;
 
     public bool IsEnabled
     {
@@ -70,6 +71,19 @@ public sealed class RobotSettings
             if (_batterySaver != value)
             {
                 _batterySaver = value;
+                OnSettingsChanged();
+            }
+        }
+    }
+
+    public bool FollowCursor
+    {
+        get => _followCursor;
+        set
+        {
+            if (_followCursor != value)
+            {
+                _followCursor = value;
                 OnSettingsChanged();
             }
         }

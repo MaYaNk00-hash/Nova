@@ -482,3 +482,12 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+
+# Release publish artifacts & logs
+packaging/publish/
+packaging/*.log
+packaging/test_install/
+artifacts/
+
+# Scratch & temporary verification files
+scratch/

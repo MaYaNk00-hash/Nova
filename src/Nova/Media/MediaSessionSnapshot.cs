@@ -14,6 +14,8 @@ public sealed record MediaSessionSnapshot
     public MediaTrackInfo TrackInfo { get; init; } = MediaTrackInfo.Empty;
     public MediaCapabilities Capabilities { get; init; } = MediaCapabilities.None;
     public bool HasActiveSession { get; init; }
+    public TimeSpan Position { get; init; } = TimeSpan.Zero;
+    public TimeSpan Duration { get; init; } = TimeSpan.Zero;
     public DateTimeOffset Timestamp { get; init; } = DateTimeOffset.UtcNow;
 
     public bool IsPlaying => PlaybackStatus == MediaPlaybackStatus.Playing;

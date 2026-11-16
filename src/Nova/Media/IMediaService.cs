@@ -49,6 +49,11 @@ public interface IMediaService : IDisposable
     Task<bool> TryPreviousAsync();
 
     /// <summary>
+    /// Attempts to seek to a specific playback position on active session.
+    /// </summary>
+    Task<bool> TrySeekAsync(TimeSpan position);
+
+    /// <summary>
     /// Forces a manual refresh of current session state and metadata.
     /// </summary>
     Task RefreshAsync();

@@ -8,6 +8,7 @@
     <Nullable>enable</Nullable>
     <PlatformTarget>x64</PlatformTarget>
     <Platforms>x64;AnyCPU</Platforms>
+    <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
     <RootNamespace>Nova.Tests</RootNamespace>
     <AssemblyName>Nova.Tests</AssemblyName>
   </PropertyGroup>

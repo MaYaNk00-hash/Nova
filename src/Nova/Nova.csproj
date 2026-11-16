@@ -8,16 +8,21 @@
     <UseWPF>true</UseWPF>
     <PlatformTarget>x64</PlatformTarget>
     <Platforms>x64;AnyCPU</Platforms>
+    <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
     <RootNamespace>Nova</RootNamespace>
     <AssemblyName>Nova</AssemblyName>
     
-    <!-- Application Metadata -->
+    <!-- Application Metadata & Packaging -->
     <Title>NOVA Desktop Companion</Title>
     <Product>NOVA</Product>
+    <Description>NOVA Dynamic Island Desktop Companion for Windows</Description>
     <Version>0.1.0</Version>
     <FileVersion>0.1.0.0</FileVersion>
     <AssemblyVersion>0.1.0.0</AssemblyVersion>
     <Company>NOVA Project</Company>
+    <Copyright>Copyright © 2026 NOVA Project</Copyright>
+    <ApplicationIcon>Resources\nova.ico</ApplicationIcon>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
 
   <ItemGroup>

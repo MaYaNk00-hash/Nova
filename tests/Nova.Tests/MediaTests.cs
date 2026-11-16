@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Nova.Core;
 using Nova.Events;
 using Nova.Media;
+using Nova.UI;
 
 namespace Nova.Tests;
 
@@ -418,5 +419,33 @@ public static class MediaTests
         thread.Join(5000);
 
         if (threadEx != null) throw threadEx;
+    }
+
+    [Fact("Verify IslandWindow.FormatMediaTime formats both standard tracks and 1h+ videos accurately without losing hours")]
+    public static void IslandWindow_FormatMediaTime_FormatsCorrectly()
+    {
+        // 1. Standard music track (< 1 hour)
+        var songElapsed = TimeSpan.FromSeconds(45);
+        var songTotal = TimeSpan.FromMinutes(3) + TimeSpan.FromSeconds(45); // 03:45
+        Assert.Equal("00:45", IslandWindow.FormatMediaTime(songElapsed, songTotal));
+        Assert.Equal("03:45", IslandWindow.FormatMediaTime(songTotal, songTotal));
+
+        // 2. Movie/video >= 1 hour (The Odyssey movie scenario: 1h 52m 30s)
+        var movieTotal = new TimeSpan(1, 52, 30);
+        var movieAtStart = TimeSpan.FromMinutes(4) + TimeSpan.FromSeconds(14); // 0:04:14
+        var moviePastOneHour = new TimeSpan(1, 4, 14); // 1:04:14
+        Assert.Equal("1:52:30", IslandWindow.FormatMediaTime(movieTotal, movieTotal));
+        Assert.Equal("0:04:14", IslandWindow.FormatMediaTime(movieAtStart, movieTotal));
+        Assert.Equal("1:04:14", IslandWindow.FormatMediaTime(moviePastOneHour, movieTotal));
+
+        // 3. Multi-hour stream (3h 15m 00s)
+        var streamTotal = new TimeSpan(3, 15, 0);
+        var streamElapsed = new TimeSpan(2, 45, 10);
+        Assert.Equal("3:15:00", IslandWindow.FormatMediaTime(streamTotal, streamTotal));
+        Assert.Equal("2:45:10", IslandWindow.FormatMediaTime(streamElapsed, streamTotal));
+
+        // 4. Edge cases
+        Assert.Equal("00:00", IslandWindow.FormatMediaTime(TimeSpan.Zero, TimeSpan.Zero));
+        Assert.Equal("00:00", IslandWindow.FormatMediaTime(TimeSpan.FromSeconds(-10), TimeSpan.Zero));
     }
 }

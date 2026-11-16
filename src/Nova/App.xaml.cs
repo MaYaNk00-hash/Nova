@@ -1,4 +1,5 @@
 using System.Linq;
+using System.Threading;
 using System.Windows;
 using System.Windows.Threading;
 using Nova.Core;
@@ -11,6 +12,13 @@ namespace Nova;
 /// </summary>
 public partial class App : Application
 {
+    private const string MutexName = @"Local\NovaDesktopCompanion_SingleInstance_Mutex";
+    private const string WakeupEventName = @"Local\NovaDesktopCompanion_Wakeup_Event";
+
+    private static Mutex? _singleInstanceMutex;
+    private static EventWaitHandle? _wakeupEvent;
+    private static RegisteredWaitHandle? _waitHandleRegistration;
+
     private IslandWindow? _islandWindow;
 
     protected override void OnStartup(StartupEventArgs e)
@@ -30,11 +38,77 @@ public partial class App : Application
             AppLogger.Info("Smoke test flag detected: validating IslandWindow lifecycle and exiting cleanly.");
             var testWindow = new IslandWindow();
             testWindow.Show();
+            testWindow.TransitionTo(IslandState.Circle);
             testWindow.TransitionTo(IslandState.Expanded);
             testWindow.TransitionTo(IslandState.Compact);
             testWindow.Close();
             Shutdown(0);
             return;
+        }
+
+        // Single-instance enforcement: prevent duplicate processes
+        bool isNewInstance;
+        try
+        {
+            _singleInstanceMutex = new Mutex(true, MutexName, out isNewInstance);
+        }
+        catch
+        {
+            isNewInstance = true;
+        }
+
+        if (!isNewInstance)
+        {
+            AppLogger.Info("Another NOVA instance is already active. Signaling existing instance and terminating duplicate process.");
+            try
+            {
+                if (EventWaitHandle.TryOpenExisting(WakeupEventName, out var existingWakeupEvent))
+                {
+                    existingWakeupEvent.Set();
+                    existingWakeupEvent.Dispose();
+                }
+            }
+            catch (Exception ex)
+            {
+                AppLogger.Warning($"Could not signal existing instance wakeup handle: {ex.Message}");
+            }
+
+            Shutdown(0);
+            return;
+        }
+
+        // Register listener on background thread pool for wakeup signals from duplicate launches
+        try
+        {
+            _wakeupEvent = new EventWaitHandle(false, EventResetMode.AutoReset, WakeupEventName);
+            _waitHandleRegistration = ThreadPool.RegisterWaitForSingleObject(
+                _wakeupEvent,
+                (state, timedOut) =>
+                {
+                    Dispatcher.BeginInvoke(() =>
+                    {
+                        if (_islandWindow != null)
+                        {
+                            AppLogger.Info("Wakeup signal received from secondary launch attempt. Restoring window.");
+                            if (_islandWindow.CurrentState == IslandState.Hidden)
+                            {
+                                _islandWindow.TransitionTo(IslandState.Compact);
+                            }
+                            _islandWindow.Show();
+                            _islandWindow.WindowState = WindowState.Normal;
+                            _islandWindow.Activate();
+                            _islandWindow.Topmost = true;
+                            _islandWindow.Focus();
+                        }
+                    });
+                },
+                null,
+                -1,
+                false);
+        }
+        catch (Exception ex)
+        {
+            AppLogger.Warning($"Could not initialize single-instance wakeup listener: {ex.Message}");
         }
 
         _islandWindow = new IslandWindow();
@@ -133,6 +207,14 @@ public partial class App : Application
         {
             _islandWindow.TransitionTo(IslandState.Expanded);
         }
+        else if (e.Args.Contains("--circle"))
+        {
+            _islandWindow.TransitionTo(IslandState.Circle);
+        }
+        else if (e.Args.Contains("--compact"))
+        {
+            _islandWindow.TransitionTo(IslandState.Compact);
+        }
     }
 
     private void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
@@ -155,6 +237,26 @@ public partial class App : Application
     protected override void OnExit(ExitEventArgs e)
     {
         AppLogger.Info($"NOVA shutting down with exit code {e.ApplicationExitCode}.");
+
+        try
+        {
+            _waitHandleRegistration?.Unregister(null);
+            _wakeupEvent?.Dispose();
+            if (_singleInstanceMutex != null)
+            {
+                try
+                {
+                    _singleInstanceMutex.ReleaseMutex();
+                }
+                catch { }
+                _singleInstanceMutex.Dispose();
+            }
+        }
+        catch (Exception ex)
+        {
+            AppLogger.Warning($"Error cleaning up single-instance handles: {ex.Message}");
+        }
+
         base.OnExit(e);
     }
 }

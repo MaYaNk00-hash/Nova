@@ -84,7 +84,7 @@ public partial class RobotCompanion : UserControl
             StopFloating();
         }
 
-        if (Settings.ReducedMotion)
+        if (Settings.ReducedMotion || !Settings.FollowCursor)
         {
             GazeTransform.X = 0;
             GazeTransform.Y = 0;
@@ -159,28 +159,82 @@ public partial class RobotCompanion : UserControl
     // --- CURSOR AWARENESS ---
     public void UpdateCursorGaze(Point relativeCursorPos, Size containerSize)
     {
-        if (Settings.ReducedMotion || CurrentState == RobotState.Sleeping)
+        if (Settings.ReducedMotion || CurrentState == RobotState.Sleeping || !Settings.FollowCursor)
         {
-            GazeTransform.X = 0;
-            GazeTransform.Y = 0;
+            UpdateGazeVector(0, 0);
             return;
         }
 
         double centerX = containerSize.Width / 2.0;
         double centerY = containerSize.Height / 2.0;
+        double deltaX = relativeCursorPos.X - centerX;
+        double deltaY = relativeCursorPos.Y - centerY;
+        UpdateGazeVector(deltaX, deltaY);
+    }
 
-        double deltaX = (relativeCursorPos.X - centerX) / Math.Max(1, centerX);
-        double deltaY = (relativeCursorPos.Y - centerY) / Math.Max(1, centerY);
+    /// <summary>
+    /// Updates eye gaze based on a global screen vector from companion center to mouse cursor across the entire screen.
+    /// </summary>
+    public void UpdateGazeVector(double deltaX, double deltaY)
+    {
+        if (Settings.ReducedMotion || CurrentState == RobotState.Sleeping || !Settings.FollowCursor)
+        {
+            if (GazeTransform.X != 0 || GazeTransform.Y != 0 || HeadRotateTransform.Angle != 0)
+            {
+                if (GazeTransform.HasAnimatedProperties)
+                {
+                    GazeTransform.BeginAnimation(TranslateTransform.XProperty, null);
+                    GazeTransform.BeginAnimation(TranslateTransform.YProperty, null);
+                }
+                GazeTransform.X = 0;
+                GazeTransform.Y = 0;
+                HeadRotateTransform.Angle = 0;
+            }
+            return;
+        }
 
-        double maxOffset = 3.2 * Settings.GetIntensityMultiplier();
-        double targetX = Math.Clamp(deltaX * maxOffset, -maxOffset, maxOffset);
-        double targetY = Math.Clamp(deltaY * maxOffset, -maxOffset, maxOffset);
+        double distance = Math.Sqrt(deltaX * deltaX + deltaY * deltaY);
+        if (distance < 0.001)
+        {
+            if (GazeTransform.HasAnimatedProperties)
+            {
+                GazeTransform.BeginAnimation(TranslateTransform.XProperty, null);
+                GazeTransform.BeginAnimation(TranslateTransform.YProperty, null);
+            }
+            GazeTransform.X = 0;
+            GazeTransform.Y = 0;
+            HeadRotateTransform.Angle = 0;
+            return;
+        }
 
-        var ease = new CubicEase { EasingMode = EasingMode.EaseOut };
-        var duration = TimeSpan.FromMilliseconds(160);
+        // Maximum deflection inside visor plate (DIPs)
+        double maxOffsetX = 5.2 * Settings.GetIntensityMultiplier();
+        double maxOffsetY = 4.2 * Settings.GetIntensityMultiplier();
 
-        GazeTransform.BeginAnimation(TranslateTransform.XProperty, new DoubleAnimation(GazeTransform.X, targetX, duration) { EasingFunction = ease });
-        GazeTransform.BeginAnimation(TranslateTransform.YProperty, new DoubleAnimation(GazeTransform.Y, targetY, duration) { EasingFunction = ease });
+        // Screen-wide normalization with hyperbolic tangent for smooth non-linear saturation across full desktop
+        double normX = Math.Tanh(deltaX / 320.0);
+        double normY = Math.Tanh(deltaY / 260.0);
+
+        double targetX = normX * maxOffsetX;
+        double targetY = normY * maxOffsetY;
+
+        // Clear any animation clocks that would lock dependency property value precedence
+        if (GazeTransform.HasAnimatedProperties)
+        {
+            GazeTransform.BeginAnimation(TranslateTransform.XProperty, null);
+            GazeTransform.BeginAnimation(TranslateTransform.YProperty, null);
+        }
+
+        // Responsive smooth damping interpolation (no locking animation clocks)
+        GazeTransform.X += (targetX - GazeTransform.X) * 0.45;
+        GazeTransform.Y += (targetY - GazeTransform.Y) * 0.45;
+
+        // Subtle head tilt towards cursor across the screen
+        if (Settings.Personality != RobotPersonality.Minimal)
+        {
+            double targetTilt = Math.Clamp(normX * 4.2, -4.5, 4.5);
+            HeadRotateTransform.Angle += (targetTilt - HeadRotateTransform.Angle) * 0.3;
+        }
     }
 
     // --- EXPRESSIONS ---

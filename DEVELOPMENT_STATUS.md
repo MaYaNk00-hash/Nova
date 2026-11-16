@@ -9,13 +9,13 @@
 | **Phase 2** | **NOVA Robotic Companion** | **COMPLETED** |
 | **Phase 3** | **Core Event Engine** | **COMPLETED & APPROVED** |
 | **Phase 4** | **Windows Media Integration** | **COMPLETED & APPROVED** |
-| **Phase 5** | **Windows Notifications** | **CORRECTIONS COMPLETE — PENDING APPROVAL** |
-| Phase 6 | System Monitoring | Pending |
+| **Phase 5** | **Windows Notifications** | **COMPLETE / APPROVED** |
+| Phase 6 | System Monitoring | Audit & Acceptance Gate Active |
 | Phase 7 | Application Awareness and Quick Actions | Pending |
 | Phase 8 | Dashboard and Settings | Pending |
 | Phase 9 | Plugin and Integration Architecture | Pending |
 | Phase 10 | Performance, Security and Reliability | Pending |
-| Phase 11 | Final Build and Installer | Pending |
+| **Phase 11** | **Standalone Software Packaging & Installer** | **COMPLETE / VERIFIED** |
 
 ---
 
@@ -165,7 +165,7 @@
   - `RealWindowsSecurity_UserNotificationListener_VerifiesUnpackagedBoundary` (proves real WinRT returns `Denied` for unpackaged Win32 execution)
   - `RealWindowsNotifications_BlockedBehavior_NoExternalToastsCapturedInUnpackagedMode` (verifies 0 external toasts captured when access is `Denied`)
   - `NotificationActionSemantics_DistinguishesIslandFromActionCenterDismissal` (verifies local clearing without false Action Center claims)
-  - `LocalNotificationPipeline_RealApplicationSchemas_SlackAndEdge` (verifies local pipeline with real Slack and Edge schemas, prioritization, and STA Island UI rendering)
+  - `LocalNotificationPipeline_RealApplicationSchemas_SlackAndEdge` (verifies local pipeline handling of synthetic Slack- and Edge-formatted test records, proving correct prioritization and STA Island UI rendering; external Windows notification capture remains unavailable in this unpackaged Win32 desktop application)
   - `IslandWindow_NotificationUI_UpdatesOnNotificationEvents`
 - **Application Smoke Test**: `Nova.exe --smoke-test` executed and verified.
 - **Visual Inspection**: Captured and validated screenshots:
@@ -246,6 +246,126 @@
 
 ---
 
+## Phase 6 System Monitoring Audit & Acceptance Gate Summary
+
+### 1. Architecture & Windows Data Sources
+- **CPU**: Win32 `kernel32!GetSystemTimes` querying cumulative idle, kernel, and user times.
+  - In Windows, `lpKernelTime` already includes `lpIdleTime`. Total system time is `diffKernel + diffUser`. Busy time is `(totalSys - diffIdle)`.
+  - Added underflow protection for multi-core timer discrepancy where `diffIdle > totalSys`, guarding against unsigned 64-bit integer underflow that previously could produce false 100% spikes.
+  - Replaced hardcoded fallback numbers (`8.0%`) with genuine last-valid-sample retention or 0.0.
+  - Thread-safe synchronization via `_syncLock`.
+- **RAM**: Win32 `kernel32!GlobalMemoryStatusEx` querying physical hardware structures (`ullTotalPhys`, `ullAvailPhys`, `dwMemoryLoad`).
+  - Strict consistency: `usedGb = totalGb - availGb` bounded by `[0, totalGb]`.
+  - Replaced fabricated fallback values (`50% / 8GB / 16GB`) with genuine last-valid retention.
+- **Disk**: .NET BCL `System.IO.DriveInfo` targeting the primary Windows system drive root (`Path.GetPathRoot(Environment.SystemDirectory)`).
+  - Explicitly measures **Storage Volume Capacity and Free Space** (`350/449GB`, `78%`), NOT I/O disk throughput or transfer rate.
+  - Targeted root drive query avoids hangs and latency from enumerating disconnected or sleeping network/removable mounts.
+
+### 2. Performance Audit & Optimization Findings
+- **Baseline Measurements (12-Core System)**:
+  - Compact Mode: 3.07% CPU (WorkingSet: 140.1 MB, PrivateMemory: 70.8 MB)
+  - Expanded HUD Mode: 1.35% CPU (WorkingSet: 152.6 MB, PrivateMemory: 82.0 MB)
+  - Hidden Mode: 2.65% CPU (WorkingSet: 138.8 MB, PrivateMemory: 70.9 MB)
+- **Root Cause & Fix for Unnecessary Hidden Telemetry**:
+  - Previously, `ClockTimer_Tick` ran telemetry queries and WPF Storyboard width animations on hidden HUD borders every second even when in Compact or Hidden state.
+  - Optimized `ClockTimer_Tick` so telemetry queries and bar animations run exclusively when in `IslandState.Expanded && _currentSlide == SlideView.Hud`.
+  - When expanding or switching to HUD, `UpdateSystemMonitor()` runs immediately to display fresh data without waiting for the next second.
+
+### 3. User Experience & Synchronization Corrections
+- **Media Timeline Sync with YouTube Music / Windows Media**:
+  - Connected `session.GetTimelineProperties()` and `session.TimelinePropertiesChanged` in `WindowsMediaService`.
+  - Live track duration and elapsed position are populated from actual player state (e.g. `00:21 / 03:26`).
+  - Added `TrySeekAsync(TimeSpan)` enabling bidirectional seeking from NOVA's timeline scrub bar to YouTube Music.
+- **Always Middle-Centered Top-Docked Window**:
+  - Island is permanently docked flush at the top-center of the screen (`Top = 0`, `Left = workArea.Left + (workArea.Width - Width) / 2.0`).
+  - Disabled accidental drag-displacement so the window never floats away or drifts off-center.
+  - Symmetrical expansion/collapse animations guarantee the island stays locked to the horizontal midpoint across all states.
+- **Three-Tier Island Hierarchy & Circle Bubble Mode**:
+  - Implemented `IslandState.Circle` (48x48 mini round bubble orb with corner radius 24).
+  - Dedicated minimize-to-circle button (`●`) in Compact pill, Expanded header, and HUD quick controls.
+  - Interactive multi-tier transitions:
+    - `Circle` $\to$ (click anywhere) $\to$ `Compact` $\to$ (click) $\to$ `Expanded`.
+    - Minimize button `●` collapses directly to `Circle`.
+    - Compact button `▴` collapses to `Compact`.
+  - **Fluid Bubble Motion**:
+    - Jelly spring bounce on `PillScaleTransform`: Pop spring (`1.0 -> 1.12 -> 1.0`) on expansion; Squish bounce (`1.0 -> 0.88 -> 1.0`) on collapse.
+    - Ambient cyan breathing pulse ring (`CirclePulseRing`) inside mini bubble orb.
+    - Mini 26px companion robot mascot tracks cursor and blinks inside the bubble orb.
+- **Persistent To-Do Storage Across Restarts**:
+  - Implemented atomic file saving (`todos.json.tmp` $\to$ `todos.json`) in `TodoStorage`.
+  - Isolated test suite execution to temporary test paths so running tests never overwrites user's live To-Do list.
+  - Added explicit data flush in `Window_Closed`.
+
+### 4. Automated Tests & Verification
+- **Total Test Count**: **72 tests passing (100%)**, `0 Warnings, 0 Errors`.
+- **Pure Mocked / Boundary Unit Tests**:
+  - `CpuCalculation_FullIdle_YieldsZeroPercent`
+  - `CpuCalculation_ZeroIdle_YieldsHundredPercent`
+  - `CpuCalculation_HalfIdle_YieldsFiftyPercent`
+  - `CpuCalculation_UnderflowProtection_ReturnsZero`
+  - `CpuCalculation_ZeroElapsed_ReturnsZero`
+  - `RamCalculation_Consistency_UsedNeverExceedsTotal`
+  - `RamCalculation_ZeroBytes_HandlesCleanly`
+  - `DiskCalculation_StorageCapacity_CalculatesCorrectly`
+  - `DiskCalculation_InvalidDriveSize_HandlesCleanly`
+  - `IslandWindow_PillTransparency_AppliedInCompactAndCircle` (Translucent glass & transparent bubble verification)
+  - `RobotSettings_FollowCursor_TogglesCorrectly`
+- **Real Windows Integration Tests (Explicitly querying host APIs)**:
+  - `RealWindows_GetSystemTimes_ProducesMonotonicTicks`
+  - `RealWindows_GlobalMemoryStatusEx_QueriesRealHardware`
+  - `RealWindows_SystemDrive_QueriesValidVolumeCapacity`
+  - `RealWindows_SystemMonitorService_EndToEndSnapshot`
+  - `SystemMonitorService_ThreadSafety_ConcurrentQueries` (16 concurrent threads)
+  - `SystemMonitorService_UIResponsiveness_QueryExecutionTime` (< 15ms execution)
+
+---
+
+## Transparent Glass & Bubble Mode Updates
+- **Compact State Transparency**:
+  - Default background updated to translucent dark glass (`#320B111C` $\to$ `#18020408`, ~15-20% alpha) with luminous cyan-tinted specular rim (`#9538BDF8`).
+  - Text, badges, and numbers rendered with subtle drop shadows to guarantee 100% legibility over any light or dark background window.
+  - Drop shadow updated to soft transparent ambient shadow (`Opacity = 0.25`), removing heavy opaque black blobs.
+- **Circle State Transparency**:
+  - 48x48 mini bubble orb background is transparent cyber glass (`#1800F2FE` $\to$ `#12060C18`).
+  - Outlined by vibrant cyan neon gradient ring (`#C000F2FE` $\to$ `#8038BDF8`), cyan breathing pulse ring, glowing cyan status dot, and luminous cyan aura (`DropShadowEffect Color="#00F2FE", Opacity=0.45`).
+  - Windows, buttons, and desktop content behind the bubble are visible right through the circle.
+- **Pill Transparency Presets & Context Menu**:
+  - Added `🎨 Pill Transparency` options to Context Menu:
+    - `Translucent Glass (Default)`
+    - `Ultra Clear (100% Transparent)`
+    - `Frosted Glass`
+    - `Solid Dark (Opaque)`
+  - Instant live switching without window reloads.
+- **Hover & Motion Feedback**:
+  - Mouse hover gently brightens the glass and highlights the soft glow aura.
+  - Mouse leave smoothly transitions shadow opacity back to default without snapping to opaque black.
+
+---
+
+## Global Screen Eye Tracking & Minimalist Notch Updates
+- **Global Screen Eye Tracking (Across Full Desktop)**:
+  - Eliminated DependencyProperty animation clock lock in `RobotCompanion.xaml.cs` that previously suppressed direct property assignments.
+  - Replaced locking animation clocks with responsive, natural damping interpolation (`lerp = 0.45`) at 30fps driven by native `user32!GetCursorPos` and hyperbolic tangent (`Math.Tanh(delta / scale)`) deflection math.
+  - Robust multi-monitor companion coordinate mapping with DPI fallback (`PointToScreen` $\to$ `TranslatePoint` + `TransformToDevice`).
+  - Robot companion eyes follow user cursor across all 4 quadrants of the entire screen to the furthest display edges, accompanied by natural subtle head tilt ($\pm 4.5^\circ$).
+  - Toggleable via Context Menu (`👀 Eye Tracking (Follow Cursor)`) and the Mascot Companion drawer.
+- **Minimalist Notch (Pure Robot Mascot Face & Glowing Eyes Only)**:
+  - In `Compact` notch mode, **only** the robotic mascot face and its large glowing cyan eyes are displayed right in the center of the notch.
+  - Completely removed and collapsed all textual clutter (including "NOVA", "READY" status badge, and the clock) as well as the chevron and circle buttons.
+  - Enlarged the robot face chassis (`50x46`), widened the obsidian visor (`42x30`), and significantly enlarged the glowing cyan eyes (`9.5x13.5`) with intense neon cyan aura.
+  - In the notch, `CompactRobot` is set to `CompanionSize="38"` centered horizontally and vertically, filling the notch with a high-definition cybernetic robotic face that watches cursor movement across the desktop.
+  - Pill dimensions refined to 156x46 with 23px corner radius, docked flush and centered to the top screen bezel.
+  - Click interactions: Left-click expands into HUD dashboard; Middle-click toggles into Bubble Circle mode; Right-click reveals context menu.
+- **Media Player Timeline Synchronization**:
+  - `WindowsMediaService` calculates exact real-time playback position by adding elapsed time since `timeline.LastUpdatedTime` to `timeline.Position` while playing.
+  - Removed hardcoded snapshot progress bar overrides so scrubber accurately represents elapsed / duration ratio.
+  - Periodic background sync every 2 seconds keeps NOVA timeline in exact lockstep with YouTube Music, Spotify, and browser video players.
+- **Automated Tests**:
+  - **73 automated tests**, 100% passing (`0 Warning(s), 0 Error(s)`).
+  - Added `RobotCompanion_GlobalScreenEyeTracking_TracksCursorAcrossFullDesktop` unit test verifying eye deflection across screen quadrants and neutral reset on disable.
+
+---
+
 ## Acceptance Criteria Checklist
 - [x] Investigated supported Windows notification APIs and documented privacy limitations honestly.
 - [x] Proved real Windows OS security boundary via `UserNotificationListener` queries returning `Denied` for unpackaged desktop mode.
@@ -260,3 +380,26 @@
 - [x] Zero cloud APIs, accounts, subscriptions, or remote calls (100% local-first and offline).
 - [x] Automated tests cover metadata, priority ordering, expiry pruning, deduplication, real WinRT security boundaries, action semantics, and local schema processing.
 - [x] Zero regressions against Phase 0, 1, 2, 3, or 4.
+
+---
+
+## Standalone Software Delivery & Installer Verification (Phase 11)
+
+### 1. Delivery Architecture
+- **Self-Contained Deployment**: `net8.0-windows10.0.19041.0` x64 release compiled with `--self-contained true` to `packaging/publish/win-x64`. Client machines do not require .NET 8 SDK or runtime.
+- **Security & Privileges**: Standard user account (`asInvoker` in `app.manifest`). Zero administrator elevation required for installation or daily execution.
+- **Application Icon**: Multi-format `.ico` asset generated at `src/Nova/Resources/nova.ico` (16x16 to 256x256) embedded as application icon and uninstaller display icon.
+- **Single-Instance Enforcement**: Named Mutex (`Local\NovaDesktopCompanion_SingleInstance_Mutex`) and named EventWaitHandle (`Local\NovaDesktopCompanion_Wakeup_Event`) in `App.xaml.cs`. Repeated launches signal existing instance and exit immediately with code 0 without duplicate processes.
+- **Startup Integration**: `HKCU\Software\Microsoft\Windows\CurrentVersion\Run\NovaDesktopCompanion` managed via `Core/StartupManager.cs` and synced with context menu.
+- **Local-First Storage**: User notes, to-dos, and preferences stored in `%LOCALAPPDATA%\Nova\Storage\` and preserved across upgrades and uninstalls.
+
+### 2. Inno Setup Production Installer
+- **Script**: `packaging/installer/NovaSetup.iss` compiled with Inno Setup 7.1.1.
+- **Artifact**: `artifacts/NovaSetup-0.1.0-x64.exe` (51.31 MB compressed with LZMA2/Ultra64).
+- **Automation**: `packaging/build_release.ps1` automates test suite, publish, and Inno Setup packaging.
+- **Verified Lifecycle**:
+  - Silent GUI/CLI install to `%LOCALAPPDATA%\Programs\NOVA`.
+  - Start Menu shortcut registered at `%APPDATA%\Microsoft\Windows\Start Menu\Programs\NOVA Desktop Companion.lnk`.
+  - Windows Settings ("Add or Remove Programs") registry key created.
+  - Independent execution verified without terminal or `dotnet run`.
+  - Clean uninstallation verified via `unins000.exe` removing all binaries and shortcuts.

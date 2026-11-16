@@ -55,6 +55,8 @@ public partial class IslandWindow : Window
     private TimeSpan _playbackTotal = TimeSpan.FromSeconds(184);
     private int _currentVolume = 100;
     private bool _isMuted = false;
+    private bool _isScrubbingTimeline = false;
+    private DateTime _lastSeekUtc = DateTime.MinValue;
 
     private List<TodoItem> _todos = new();
     private string _todoFilter = "All";
@@ -67,6 +69,7 @@ public partial class IslandWindow : Window
     private Border[] _calendarNumBorders = Array.Empty<Border>();
 
     public IslandState CurrentState { get; private set; } = IslandState.Compact;
+    public PillTransparencyMode TransparencyMode { get; private set; } = PillTransparencyMode.TranslucentGlass;
     public bool IsAlwaysOnTop => Topmost;
     public bool IsManuallyPositioned => _isManuallyPositioned;
     public RobotController RobotController => _robotController;
@@ -115,6 +118,8 @@ public partial class IslandWindow : Window
         };
         _focusTimer.Tick += FocusTimer_Tick;
 
+        ApplyPillStyleForState(CurrentState);
+
         AppLogger.Info("IslandWindow initialized.");
     }
 
@@ -132,6 +137,7 @@ public partial class IslandWindow : Window
         // Register robots with controller
         _robotController.RegisterCompanion(CompactRobot);
         _robotController.RegisterCompanion(ExpandedRobot);
+        _robotController.RegisterCompanion(CircleRobot);
 
         // Cache calendar elements
         _calendarDayLabels = new[] { DayLabel0, DayLabel1, DayLabel2, DayLabel3, DayLabel4, DayLabel5, DayLabel6 };
@@ -156,6 +162,22 @@ public partial class IslandWindow : Window
 
         // Position window top-center
         ResetToTopCenter(animate: false);
+        ApplyPillStyleForState(CurrentState);
+        SyncTransparencyMenuChecks(TransparencyMode);
+
+        try
+        {
+            var menu = (ContextMenu)Resources["IslandContextMenu"];
+            foreach (var item in menu.Items)
+            {
+                if (item is MenuItem mi && mi.Header?.ToString()?.Contains("Launch with Windows") == true)
+                {
+                    mi.IsChecked = StartupManager.IsStartupLaunchEnabled();
+                    break;
+                }
+            }
+        }
+        catch { }
 
         // Initial updates
         UpdateClock();
@@ -275,21 +297,40 @@ public partial class IslandWindow : Window
 
     private void ClockTimer_Tick(object? sender, EventArgs e)
     {
+        if (CurrentState == IslandState.Hidden)
+        {
+            _notificationService.PruneExpired();
+            return;
+        }
+
         UpdateClock();
         UpdateCalendar();
-        UpdateSystemMonitor();
+
+        if (CurrentState == IslandState.Expanded && _currentSlide == SlideView.Hud)
+        {
+            UpdateSystemMonitor();
+        }
+
         _notificationService.PruneExpired();
         UpdateNotificationUI();
 
-        // Advance live track timeline if media is playing
-        if (_lastMediaSnapshot?.IsPlaying == true)
+        bool isRecentSeek = (DateTime.UtcNow - _lastSeekUtc).TotalMilliseconds < 1500;
+
+        // Advance live track timeline if media is playing and not actively scrubbing or recovering from seek
+        if (_lastMediaSnapshot?.IsPlaying == true && !_isScrubbingTimeline)
         {
             _playbackElapsed = _playbackElapsed.Add(TimeSpan.FromSeconds(1));
-            if (_playbackElapsed > _playbackTotal)
+            if (_playbackTotal > TimeSpan.Zero && _playbackElapsed > _playbackTotal)
             {
-                _playbackElapsed = TimeSpan.Zero;
+                _playbackElapsed = _playbackTotal;
             }
             UpdateTimelineUI();
+        }
+
+        // Periodically refresh active media session timeline to stay in sync with external browser/player
+        if (_lastMediaSnapshot?.HasActiveSession == true && CurrentState == IslandState.Expanded && !_isScrubbingTimeline && !isRecentSeek)
+        {
+            _ = _mediaService.RefreshAsync();
         }
     }
 
@@ -309,22 +350,52 @@ public partial class IslandWindow : Window
         }
     }
 
+    public static string FormatMediaTime(TimeSpan time, TimeSpan referenceTotal)
+    {
+        if (time < TimeSpan.Zero) time = TimeSpan.Zero;
+        if (double.IsNaN(time.TotalSeconds) || double.IsInfinity(time.TotalSeconds)) return "00:00";
+        bool showHours = referenceTotal.TotalHours >= 1.0 || time.TotalHours >= 1.0;
+        if (showHours)
+        {
+            return $"{(int)time.TotalHours}:{time.Minutes:D2}:{time.Seconds:D2}";
+        }
+        return $"{(int)time.TotalMinutes:D2}:{time.Seconds:D2}";
+    }
+
     private void UpdateTimelineUI()
     {
         if (HudProgressElapsedText != null)
         {
-            HudProgressElapsedText.Text = _playbackElapsed.ToString(@"mm\:ss");
+            HudProgressElapsedText.Text = FormatMediaTime(_playbackElapsed, _playbackTotal);
         }
         if (HudProgressTotalText != null)
         {
-            HudProgressTotalText.Text = _playbackTotal.ToString(@"mm\:ss");
+            HudProgressTotalText.Text = _playbackTotal > TimeSpan.Zero 
+                ? FormatMediaTime(_playbackTotal, _playbackTotal) 
+                : "--:--";
         }
-        if (HudProgressBar != null)
+        if (HudProgressBar != null && HudTimelineTrack != null)
         {
-            double trackWidth = 110.0;
-            double fraction = _playbackElapsed.TotalSeconds / Math.Max(1.0, _playbackTotal.TotalSeconds);
-            double targetWidth = Math.Clamp(fraction * trackWidth, 4.0, trackWidth);
+            double trackWidth = HudTimelineTrack.ActualWidth > 0 ? HudTimelineTrack.ActualWidth : 120.0;
+            double totalSec = Math.Max(1.0, _playbackTotal.TotalSeconds);
+            double fraction = Math.Clamp(_playbackElapsed.TotalSeconds / totalSec, 0.0, 1.0);
+            double targetWidth = Math.Clamp(fraction * trackWidth, 0.0, trackWidth);
             HudProgressBar.Width = targetWidth;
+
+            if (HudScrubberThumb != null)
+            {
+                double thumbLeft = Math.Clamp(targetWidth - 6.0, 0.0, Math.Max(0.0, trackWidth - 12.0));
+                if (HudScrubberThumbTransform != null)
+                {
+                    HudScrubberThumbTransform.X = thumbLeft;
+                    HudScrubberThumb.Margin = new Thickness(0);
+                }
+                else
+                {
+                    HudScrubberThumb.Margin = new Thickness(thumbLeft, 0, 0, 0);
+                }
+                HudScrubberThumb.Visibility = targetWidth > 0 ? Visibility.Visible : Visibility.Collapsed;
+            }
         }
     }
 
@@ -449,7 +520,8 @@ public partial class IslandWindow : Window
     {
         if (_isTransitioning && CurrentState == targetState) return;
 
-        AppLogger.Info($"Transitioning Island state from {CurrentState} to {targetState}.");
+        var previousState = CurrentState;
+        AppLogger.Info($"Transitioning Island state from {previousState} to {targetState}.");
         _isTransitioning = true;
         CurrentState = targetState;
 
@@ -460,6 +532,7 @@ public partial class IslandWindow : Window
 
         if (targetState == IslandState.Hidden)
         {
+            StopCirclePulse();
             var fadeOut = new DoubleAnimation(1.0, 0.0, duration) { EasingFunction = ease };
             fadeOut.Completed += (s, e) =>
             {
@@ -470,7 +543,7 @@ public partial class IslandWindow : Window
             return;
         }
 
-        if (CurrentState == IslandState.Hidden)
+        if (previousState == IslandState.Hidden)
         {
             Visibility = Visibility.Visible;
             BeginAnimation(OpacityProperty, new DoubleAnimation(0.0, 1.0, duration) { EasingFunction = ease });
@@ -478,82 +551,129 @@ public partial class IslandWindow : Window
 
         double targetPillWidth;
         double targetPillHeight;
-        double targetCornerRadius;
+        CornerRadius targetCornerRadius;
+        Thickness targetBorderThickness;
 
-        if (targetState == IslandState.Compact)
+        if (targetState == IslandState.Circle)
         {
-            targetPillWidth = IslandDimensions.CompactWidth;
-            targetPillHeight = IslandDimensions.CompactHeight;
-            targetCornerRadius = IslandDimensions.CompactCornerRadius;
+            targetPillWidth = IslandDimensions.CircleWidth;
+            targetPillHeight = IslandDimensions.CircleHeight;
+            targetCornerRadius = new CornerRadius(IslandDimensions.CircleCornerRadius);
+            targetBorderThickness = new Thickness(1.2);
 
-            var fadeExpanded = new DoubleAnimation(1.0, 0.0, TimeSpan.FromMilliseconds(100));
-            fadeExpanded.Completed += (s, e) =>
+            StartCirclePulse();
+            ApplyBubbleMotion(isExpanding: false);
+
+            if (ExpandedPanel != null) ExpandedPanel.Visibility = Visibility.Collapsed;
+            if (CompactPanel != null) CompactPanel.Visibility = Visibility.Collapsed;
+
+            if (CirclePanel != null)
             {
-                ExpandedPanel.Visibility = Visibility.Collapsed;
+                CirclePanel.Visibility = Visibility.Visible;
+                CirclePanel.BeginAnimation(OpacityProperty, new DoubleAnimation(0.0, 1.0, TimeSpan.FromMilliseconds(140)));
+            }
+        }
+        else if (targetState == IslandState.Compact)
+        {
+            StopCirclePulse();
+            bool hasMedia = _lastMediaSnapshot?.HasActiveSession == true;
+            targetPillWidth = hasMedia ? IslandDimensions.CompactMediaWidth : IslandDimensions.CompactWidth;
+            targetPillHeight = hasMedia ? IslandDimensions.CompactMediaHeight : IslandDimensions.CompactHeight;
+            double cr = hasMedia ? IslandDimensions.CompactMediaCornerRadius : IslandDimensions.CompactCornerRadius;
+            targetCornerRadius = new CornerRadius(0, 0, cr, cr);
+            targetBorderThickness = new Thickness(1.2, 0, 1.2, 1.2);
+
+            ApplyBubbleMotion(isExpanding: previousState == IslandState.Circle);
+
+            double targetWinWidth = hasMedia ? IslandDimensions.CompactMediaWindowWidth : IslandDimensions.CompactWindowWidth;
+            double targetWinHeight = hasMedia ? IslandDimensions.CompactMediaWindowHeight : IslandDimensions.CompactWindowHeight;
+
+            if (previousState == IslandState.Circle || hasMedia)
+            {
+                // Expanding to Compact or showing media: adjust window bounds immediately
+                SetWindowDimensionsAndCenter(targetWinWidth, targetWinHeight);
+            }
+
+            if (ExpandedPanel != null) ExpandedPanel.Visibility = Visibility.Collapsed;
+            if (CirclePanel != null) CirclePanel.Visibility = Visibility.Collapsed;
+
+            if (CompactPanel != null)
+            {
                 CompactPanel.Visibility = Visibility.Visible;
                 CompactPanel.BeginAnimation(OpacityProperty, new DoubleAnimation(0.0, 1.0, TimeSpan.FromMilliseconds(140)));
-            };
-            ExpandedPanel.BeginAnimation(OpacityProperty, fadeExpanded);
+            }
+
+            if (CompactMediaPanel != null)
+            {
+                CompactMediaPanel.Visibility = hasMedia ? Visibility.Visible : Visibility.Collapsed;
+            }
         }
         else // Expanded
         {
+            StopCirclePulse();
             targetPillWidth = IslandDimensions.ExpandedWidth;
             targetPillHeight = _currentSlide == SlideView.Hud ? IslandDimensions.ExpandedHeight : IslandDimensions.ExpandedWorkspaceHeight;
-            targetCornerRadius = IslandDimensions.ExpandedCornerRadius;
+            targetCornerRadius = new CornerRadius(0, 0, IslandDimensions.ExpandedCornerRadius, IslandDimensions.ExpandedCornerRadius);
+            targetBorderThickness = new Thickness(1.2, 0, 1.2, 1.2);
+
+            ApplyBubbleMotion(isExpanding: true);
 
             if (HeaderTabsRow != null)
             {
                 HeaderTabsRow.Visibility = _currentSlide == SlideView.Hud ? Visibility.Collapsed : Visibility.Visible;
             }
 
-            Width = IslandDimensions.ExpandedWindowWidth;
-            Height = _currentSlide == SlideView.Hud ? IslandDimensions.ExpandedHudWindowHeight : IslandDimensions.ExpandedWindowHeight;
-            var workArea = ScreenHelper.GetWorkingArea(this);
-            Top = workArea.Top + IslandDimensions.TopMargin;
-            if (!_isManuallyPositioned)
-            {
-                Left = workArea.Left + (workArea.Width - Width) / 2.0;
-            }
+            double targetWindowHeight = _currentSlide == SlideView.Hud ? IslandDimensions.ExpandedHudWindowHeight : IslandDimensions.ExpandedWindowHeight;
+            SetWindowDimensionsAndCenter(IslandDimensions.ExpandedWindowWidth, targetWindowHeight);
 
-            var fadeCompact = new DoubleAnimation(1.0, 0.0, TimeSpan.FromMilliseconds(100));
-            fadeCompact.Completed += (s, e) =>
+            if (CirclePanel != null) CirclePanel.Visibility = Visibility.Collapsed;
+            if (CompactPanel != null) CompactPanel.Visibility = Visibility.Collapsed;
+
+            if (ExpandedPanel != null)
             {
-                CompactPanel.Visibility = Visibility.Collapsed;
                 ExpandedPanel.Visibility = Visibility.Visible;
                 if (HeaderTabsRow != null)
                 {
                     HeaderTabsRow.Visibility = _currentSlide == SlideView.Hud ? Visibility.Collapsed : Visibility.Visible;
                 }
                 ExpandedPanel.BeginAnimation(OpacityProperty, new DoubleAnimation(0.0, 1.0, TimeSpan.FromMilliseconds(140)));
-            };
-            CompactPanel.BeginAnimation(OpacityProperty, fadeCompact);
+                if (_currentSlide == SlideView.Hud)
+                {
+                    UpdateSystemMonitor();
+                }
+            }
         }
+
+        PillBorder.BorderThickness = targetBorderThickness;
+        ApplyPillStyleForState(targetState);
 
         // Safely determine start dimensions
         double currentWidth = PillBorder.ActualWidth > 0 ? PillBorder.ActualWidth :
             (!double.IsNaN(PillBorder.Width) && PillBorder.Width > 0 ? PillBorder.Width :
-            (CurrentState == IslandState.Compact ? IslandDimensions.CompactWidth : IslandDimensions.ExpandedWidth));
+            (previousState == IslandState.Circle ? IslandDimensions.CircleWidth :
+            (previousState == IslandState.Compact ? IslandDimensions.CompactWidth : IslandDimensions.ExpandedWidth)));
 
         double currentHeight = PillBorder.ActualHeight > 0 ? PillBorder.ActualHeight :
             (!double.IsNaN(PillBorder.Height) && PillBorder.Height > 0 ? PillBorder.Height :
-            (CurrentState == IslandState.Compact ? IslandDimensions.CompactHeight : IslandDimensions.ExpandedHeight));
+            (previousState == IslandState.Circle ? IslandDimensions.CircleHeight :
+            (previousState == IslandState.Compact ? IslandDimensions.CompactHeight : IslandDimensions.ExpandedHeight)));
 
         var animWidth = new DoubleAnimation(currentWidth, targetPillWidth, duration) { EasingFunction = ease };
         var animHeight = new DoubleAnimation(currentHeight, targetPillHeight, duration) { EasingFunction = ease };
-        var animCorner = new CornerRadiusAnimation(PillBorder.CornerRadius, new CornerRadius(0, 0, targetCornerRadius, targetCornerRadius), duration) { EasingFunction = ease };
+        var animCorner = new CornerRadiusAnimation(PillBorder.CornerRadius, targetCornerRadius, duration) { EasingFunction = ease };
 
         animWidth.Completed += (s, e) =>
         {
-            if (targetState == IslandState.Compact)
+            if (targetState == IslandState.Circle)
             {
-                Width = IslandDimensions.CompactWindowWidth;
-                Height = IslandDimensions.CompactWindowHeight;
-                var workArea = ScreenHelper.GetWorkingArea(this);
-                Top = workArea.Top + IslandDimensions.TopMargin;
-                if (!_isManuallyPositioned)
-                {
-                    Left = workArea.Left + (workArea.Width - Width) / 2.0;
-                }
+                SetWindowDimensionsAndCenter(IslandDimensions.CircleWindowWidth, IslandDimensions.CircleWindowHeight);
+            }
+            else if (targetState == IslandState.Compact)
+            {
+                bool hasMedia = _lastMediaSnapshot?.HasActiveSession == true;
+                double winWidth = hasMedia ? IslandDimensions.CompactMediaWindowWidth : IslandDimensions.CompactWindowWidth;
+                double winHeight = hasMedia ? IslandDimensions.CompactMediaWindowHeight : IslandDimensions.CompactWindowHeight;
+                SetWindowDimensionsAndCenter(winWidth, winHeight);
             }
             _isTransitioning = false;
         };
@@ -568,38 +688,85 @@ public partial class IslandWindow : Window
             PillGlossShine.BeginAnimation(OpacityProperty, animShine);
         }
 
-        // Keep centered horizontally if not manually dragged
-        if (!_isManuallyPositioned)
-        {
-            var workArea = ScreenHelper.GetWorkingArea(this);
-            double targetLeft = workArea.Left + (workArea.Width - Width) / 2.0;
-            double currentLeft = !double.IsNaN(Left) ? Left : targetLeft;
-            var animLeft = new DoubleAnimation(currentLeft, targetLeft, duration) { EasingFunction = ease };
-            BeginAnimation(LeftProperty, animLeft);
-        }
+        EnsureCentered();
     }
 
-    public void ResetToTopCenter(bool animate = true)
+    private void SetWindowDimensionsAndCenter(double width, double height)
+    {
+        Width = width;
+        Height = height;
+        EnsureCentered();
+    }
+
+    private void EnsureCentered()
     {
         var workArea = ScreenHelper.GetWorkingArea(this);
-        var targetPoint = ScreenHelper.CalculateTopCenter(workArea, Width, IslandDimensions.TopMargin);
+        BeginAnimation(LeftProperty, null);
+        BeginAnimation(TopProperty, null);
+        Left = workArea.Left + (workArea.Width - Width) / 2.0;
+        Top = workArea.Top + IslandDimensions.TopMargin;
+    }
 
+    private static void FadeOutPanel(UIElement? panel)
+    {
+        if (panel == null || panel.Visibility != Visibility.Visible) return;
+        var fade = new DoubleAnimation(panel.Opacity, 0.0, TimeSpan.FromMilliseconds(90));
+        fade.Completed += (s, e) => panel.Visibility = Visibility.Collapsed;
+        panel.BeginAnimation(OpacityProperty, fade);
+    }
+
+    private void ApplyBubbleMotion(bool isExpanding)
+    {
+        if (PillScaleTransform == null) return;
+
+        var animX = new DoubleAnimationUsingKeyFrames();
+        animX.KeyFrames.Add(new LinearDoubleKeyFrame(1.0, KeyTime.FromTimeSpan(TimeSpan.Zero)));
+        animX.KeyFrames.Add(new SplineDoubleKeyFrame(isExpanding ? 1.12 : 0.88, KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(110)), new KeySpline(0.2, 0.8, 0.2, 1.0)));
+        animX.KeyFrames.Add(new SplineDoubleKeyFrame(1.0, KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(280)), new KeySpline(0.2, 0.8, 0.2, 1.0)));
+
+        var animY = new DoubleAnimationUsingKeyFrames();
+        animY.KeyFrames.Add(new LinearDoubleKeyFrame(1.0, KeyTime.FromTimeSpan(TimeSpan.Zero)));
+        animY.KeyFrames.Add(new SplineDoubleKeyFrame(isExpanding ? 0.88 : 1.12, KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(110)), new KeySpline(0.2, 0.8, 0.2, 1.0)));
+        animY.KeyFrames.Add(new SplineDoubleKeyFrame(1.0, KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(280)), new KeySpline(0.2, 0.8, 0.2, 1.0)));
+
+        PillScaleTransform.BeginAnimation(ScaleTransform.ScaleXProperty, animX);
+        PillScaleTransform.BeginAnimation(ScaleTransform.ScaleYProperty, animY);
+    }
+
+    private void StartCirclePulse()
+    {
+        if (CirclePulseScale == null || CirclePulseRing == null) return;
+
+        var pulseScale = new DoubleAnimation(0.9, 1.15, TimeSpan.FromMilliseconds(1500))
+        {
+            AutoReverse = true,
+            RepeatBehavior = RepeatBehavior.Forever,
+            EasingFunction = new SineEase { EasingMode = EasingMode.EaseInOut }
+        };
+        CirclePulseScale.BeginAnimation(ScaleTransform.ScaleXProperty, pulseScale);
+        CirclePulseScale.BeginAnimation(ScaleTransform.ScaleYProperty, pulseScale);
+
+        var pulseOpacity = new DoubleAnimation(0.2, 0.6, TimeSpan.FromMilliseconds(1500))
+        {
+            AutoReverse = true,
+            RepeatBehavior = RepeatBehavior.Forever,
+            EasingFunction = new SineEase { EasingMode = EasingMode.EaseInOut }
+        };
+        CirclePulseRing.BeginAnimation(OpacityProperty, pulseOpacity);
+    }
+
+    private void StopCirclePulse()
+    {
+        CirclePulseScale?.BeginAnimation(ScaleTransform.ScaleXProperty, null);
+        CirclePulseScale?.BeginAnimation(ScaleTransform.ScaleYProperty, null);
+        CirclePulseRing?.BeginAnimation(OpacityProperty, null);
+    }
+
+    public void ResetToTopCenter(bool animate = false)
+    {
         _isManuallyPositioned = false;
-
-        if (animate)
-        {
-            var duration = TimeSpan.FromMilliseconds(IslandDimensions.AnimationDurationMs);
-            var ease = new CubicEase { EasingMode = EasingMode.EaseOut };
-            BeginAnimation(LeftProperty, new DoubleAnimation(Left, targetPoint.X, duration) { EasingFunction = ease });
-            BeginAnimation(TopProperty, new DoubleAnimation(Top, targetPoint.Y, duration) { EasingFunction = ease });
-        }
-        else
-        {
-            Left = targetPoint.X;
-            Top = targetPoint.Y;
-        }
-
-        AppLogger.Info($"Reset Island to Top-Center on monitor work area: {workArea.Width}x{workArea.Height}.");
+        EnsureCentered();
+        AppLogger.Info($"Reset Island to Top-Center. Left={Left}, Top={Top}.");
     }
 
     public void ToggleAlwaysOnTop()
@@ -627,61 +794,44 @@ public partial class IslandWindow : Window
 
         if (e.ClickCount == 2)
         {
-            ResetToTopCenter(animate: true);
+            ResetToTopCenter(animate: false);
             e.Handled = true;
             return;
         }
 
-        if (CurrentState == IslandState.Compact && e.OriginalSource is not Button)
+        if (e.OriginalSource is Button)
         {
-            double initialLeft = Left;
-            double initialTop = Top;
+            return;
+        }
 
-            try
-            {
-                DragMove();
-            }
-            catch { }
-
-            if (Math.Abs(Left - initialLeft) > 3 || Math.Abs(Top - initialTop) > 3)
-            {
-                _isManuallyPositioned = true;
-                ClampPosition();
-            }
-            else
-            {
-                TransitionTo(IslandState.Expanded);
-            }
-
+        if (CurrentState == IslandState.Circle)
+        {
+            TransitionTo(IslandState.Compact);
             e.Handled = true;
             return;
         }
 
-        if (e.OriginalSource is not Button)
+        if (CurrentState == IslandState.Compact)
         {
-            try
-            {
-                DragMove();
-                _isManuallyPositioned = true;
-                ClampPosition();
-            }
-            catch { }
+            TransitionTo(IslandState.Expanded);
+            e.Handled = true;
+            return;
+        }
+    }
+
+    private void Pill_MouseDown(object sender, MouseButtonEventArgs e)
+    {
+        if (e.ChangedButton == MouseButton.Middle)
+        {
+            TransitionTo(CurrentState == IslandState.Circle ? IslandState.Compact : IslandState.Circle);
             e.Handled = true;
         }
     }
 
     private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
-        if (e.OriginalSource is not Button)
-        {
-            try
-            {
-                DragMove();
-                _isManuallyPositioned = true;
-                ClampPosition();
-            }
-            catch { }
-        }
+        // Window is permanently docked/centered on the top edge.
+        // DragMove is disabled to guarantee it sticks firmly to the middle upper screen.
     }
 
     private void Window_MouseRightButtonUp(object sender, MouseButtonEventArgs e)
@@ -693,11 +843,7 @@ public partial class IslandWindow : Window
 
     private void ClampPosition()
     {
-        var workArea = ScreenHelper.GetWorkingArea(this);
-        var clamped = ScreenHelper.ClampToWorkArea(workArea, Left, Top, Width, Height);
-        Left = clamped.X;
-        // Firmly fixed on the top edge rather than floating everywhere
-        Top = workArea.Top + IslandDimensions.TopMargin;
+        EnsureCentered();
     }
 
     // SLIDE SWITCHING LOGIC WITH SMOOTH MOTIONS
@@ -752,6 +898,7 @@ public partial class IslandWindow : Window
         {
             case SlideView.Hud:
                 TransitionSlide(SlideHudPanel, SlideHudTransform);
+                UpdateSystemMonitor();
                 break;
             case SlideView.Notes:
                 TransitionSlide(SlideNotesPanel, SlideNotesTransform);
@@ -917,20 +1064,106 @@ public partial class IslandWindow : Window
     {
         if (sender is FrameworkElement track && track.ActualWidth > 0)
         {
+            track.CaptureMouse();
+            _isScrubbingTimeline = true;
+            _lastSeekUtc = DateTime.UtcNow;
+
             var pos = e.GetPosition(track);
             double fraction = Math.Clamp(pos.X / track.ActualWidth, 0.0, 1.0);
-            _playbackElapsed = TimeSpan.FromSeconds(fraction * _playbackTotal.TotalSeconds);
+            var targetTime = TimeSpan.FromSeconds(fraction * Math.Max(1.0, _playbackTotal.TotalSeconds));
+            _playbackElapsed = targetTime;
             UpdateTimelineUI();
-            _robotController.TriggerNodTestEvent();
         }
         e.Handled = true;
     }
 
+    private void TimelineTrack_MouseMove(object sender, MouseEventArgs e)
+    {
+        if (sender is FrameworkElement track && track.ActualWidth > 0)
+        {
+            var pos = e.GetPosition(track);
+            double fraction = Math.Clamp(pos.X / track.ActualWidth, 0.0, 1.0);
+            var hoverTime = TimeSpan.FromSeconds(fraction * Math.Max(1.0, _playbackTotal.TotalSeconds));
+            track.ToolTip = $"Seek to {FormatMediaTime(hoverTime, _playbackTotal)}";
+
+            if (_isScrubbingTimeline && e.LeftButton == MouseButtonState.Pressed)
+            {
+                _playbackElapsed = hoverTime;
+                UpdateTimelineUI();
+            }
+        }
+    }
+
+    private async void TimelineTrack_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is FrameworkElement track && _isScrubbingTimeline)
+        {
+            track.ReleaseMouseCapture();
+            _isScrubbingTimeline = false;
+            _lastSeekUtc = DateTime.UtcNow;
+
+            var pos = e.GetPosition(track);
+            double fraction = Math.Clamp(pos.X / track.ActualWidth, 0.0, 1.0);
+            var targetTime = TimeSpan.FromSeconds(fraction * Math.Max(1.0, _playbackTotal.TotalSeconds));
+            _playbackElapsed = targetTime;
+            UpdateTimelineUI();
+            await _mediaService.TrySeekAsync(targetTime);
+            _robotController.TriggerNodTestEvent();
+
+            if (!track.IsMouseOver)
+            {
+                var animHeight = new DoubleAnimation(5.0, TimeSpan.FromMilliseconds(120)) { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut } };
+                HudGrooveBar?.BeginAnimation(HeightProperty, animHeight);
+                HudProgressBar?.BeginAnimation(HeightProperty, animHeight);
+
+                var animThumb = new DoubleAnimation(12.0, TimeSpan.FromMilliseconds(120)) { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut } };
+                HudScrubberThumb?.BeginAnimation(WidthProperty, animThumb);
+                HudScrubberThumb?.BeginAnimation(HeightProperty, animThumb);
+            }
+        }
+        e.Handled = true;
+    }
+
+    private void TimelineTrack_LostMouseCapture(object sender, MouseEventArgs e)
+    {
+        if (_isScrubbingTimeline)
+        {
+            _isScrubbingTimeline = false;
+            _lastSeekUtc = DateTime.UtcNow;
+        }
+    }
+
+    private void TimelineTrack_MouseEnter(object sender, MouseEventArgs e)
+    {
+        var animHeight = new DoubleAnimation(7.0, TimeSpan.FromMilliseconds(120)) { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut } };
+        HudGrooveBar?.BeginAnimation(HeightProperty, animHeight);
+        HudProgressBar?.BeginAnimation(HeightProperty, animHeight);
+
+        var animThumb = new DoubleAnimation(14.0, TimeSpan.FromMilliseconds(120)) { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut } };
+        HudScrubberThumb?.BeginAnimation(WidthProperty, animThumb);
+        HudScrubberThumb?.BeginAnimation(HeightProperty, animThumb);
+    }
+
+    private void TimelineTrack_MouseLeave(object sender, MouseEventArgs e)
+    {
+        if (!_isScrubbingTimeline)
+        {
+            var animHeight = new DoubleAnimation(5.0, TimeSpan.FromMilliseconds(120)) { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut } };
+            HudGrooveBar?.BeginAnimation(HeightProperty, animHeight);
+            HudProgressBar?.BeginAnimation(HeightProperty, animHeight);
+
+            var animThumb = new DoubleAnimation(12.0, TimeSpan.FromMilliseconds(120)) { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut } };
+            HudScrubberThumb?.BeginAnimation(WidthProperty, animThumb);
+            HudScrubberThumb?.BeginAnimation(HeightProperty, animThumb);
+        }
+    }
+
     private void PillBorder_MouseEnter(object sender, MouseEventArgs e)
     {
-        if (CurrentState == IslandState.Compact)
+        if (CurrentState == IslandState.Compact || CurrentState == IslandState.Circle)
         {
-            var animScale = new DoubleAnimation(1.0, 1.03, TimeSpan.FromMilliseconds(160))
+            double targetScale = CurrentState == IslandState.Circle ? 1.08 : 1.03;
+            var animScale = new DoubleAnimation(1.0, targetScale, TimeSpan.FromMilliseconds(160))
             {
                 EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
             };
@@ -939,7 +1172,8 @@ public partial class IslandWindow : Window
 
             if (PillBorder.Effect is DropShadowEffect shadow)
             {
-                var animGlow = new DoubleAnimation(shadow.Opacity, 1.0, TimeSpan.FromMilliseconds(160));
+                double targetOpacity = CurrentState == IslandState.Circle ? 0.75 : (TransparencyMode == PillTransparencyMode.UltraClear ? 0.35 : 0.50);
+                var animGlow = new DoubleAnimation(shadow.Opacity, targetOpacity, TimeSpan.FromMilliseconds(160));
                 shadow.BeginAnimation(DropShadowEffect.OpacityProperty, animGlow);
             }
         }
@@ -947,7 +1181,7 @@ public partial class IslandWindow : Window
 
     private void PillBorder_MouseLeave(object sender, MouseEventArgs e)
     {
-        if (CurrentState == IslandState.Compact)
+        if (CurrentState == IslandState.Compact || CurrentState == IslandState.Circle)
         {
             var animScale = new DoubleAnimation(PillScaleTransform.ScaleX, 1.0, TimeSpan.FromMilliseconds(200))
             {
@@ -958,7 +1192,8 @@ public partial class IslandWindow : Window
 
             if (PillBorder.Effect is DropShadowEffect shadow)
             {
-                var animGlow = new DoubleAnimation(shadow.Opacity, 0.85, TimeSpan.FromMilliseconds(200));
+                double targetOpacity = GetDefaultShadowOpacity(CurrentState);
+                var animGlow = new DoubleAnimation(shadow.Opacity, targetOpacity, TimeSpan.FromMilliseconds(200));
                 shadow.BeginAnimation(DropShadowEffect.OpacityProperty, animGlow);
             }
         }
@@ -1263,15 +1498,269 @@ public partial class IslandWindow : Window
     // UI Click Handlers
     private void ExpandButton_Click(object sender, RoutedEventArgs e) => TransitionTo(IslandState.Expanded);
     private void CompactButton_Click(object sender, RoutedEventArgs e) => TransitionTo(IslandState.Compact);
+    private void CircleButton_Click(object sender, RoutedEventArgs e)
+    {
+        e.Handled = true;
+        TransitionTo(IslandState.Circle);
+    }
     private void HideButton_Click(object sender, RoutedEventArgs e) => TransitionTo(IslandState.Hidden);
     private void PinButton_Click(object sender, RoutedEventArgs e) => ToggleAlwaysOnTop();
 
     private void MenuExpand_Click(object sender, RoutedEventArgs e) => TransitionTo(IslandState.Expanded);
     private void MenuCompact_Click(object sender, RoutedEventArgs e) => TransitionTo(IslandState.Compact);
+    private void MenuCircle_Click(object sender, RoutedEventArgs e) => TransitionTo(IslandState.Circle);
     private void MenuResetPosition_Click(object sender, RoutedEventArgs e) => ResetToTopCenter(animate: true);
     private void MenuAlwaysOnTop_Click(object sender, RoutedEventArgs e) => ToggleAlwaysOnTop();
+    private void MenuLaunchAtStartup_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is MenuItem menuItem)
+        {
+            bool enabled = menuItem.IsChecked;
+            StartupManager.SetStartupLaunch(enabled);
+            AppLogger.Info($"Launch at Windows startup toggled: {enabled}");
+        }
+    }
     private void MenuHide_Click(object sender, RoutedEventArgs e) => TransitionTo(IslandState.Hidden);
     private void MenuExit_Click(object sender, RoutedEventArgs e) => Application.Current.Shutdown();
+
+    public void SetTransparencyMode(PillTransparencyMode mode)
+    {
+        TransparencyMode = mode;
+        SyncTransparencyMenuChecks(mode);
+        ApplyPillStyleForState(CurrentState);
+        AppLogger.Info($"Pill transparency mode changed to: {mode}.");
+    }
+
+    private void MenuTranslucentGlass_Click(object sender, RoutedEventArgs e) => SetTransparencyMode(PillTransparencyMode.TranslucentGlass);
+    private void MenuUltraClear_Click(object sender, RoutedEventArgs e) => SetTransparencyMode(PillTransparencyMode.UltraClear);
+    private void MenuFrostedGlass_Click(object sender, RoutedEventArgs e) => SetTransparencyMode(PillTransparencyMode.FrostedGlass);
+    private void MenuSolidDark_Click(object sender, RoutedEventArgs e) => SetTransparencyMode(PillTransparencyMode.SolidDark);
+
+    private void SyncTransparencyMenuChecks(PillTransparencyMode mode)
+    {
+        try
+        {
+            var menu = (ContextMenu)Resources["IslandContextMenu"];
+            foreach (var item in menu.Items)
+            {
+                if (item is MenuItem mi && mi.Header?.ToString()?.Contains("Pill Transparency") == true)
+                {
+                    foreach (var subItem in mi.Items)
+                    {
+                        if (subItem is MenuItem subMi)
+                        {
+                            var header = subMi.Header?.ToString() ?? "";
+                            subMi.IsChecked = mode switch
+                            {
+                                PillTransparencyMode.TranslucentGlass => header.Contains("Translucent"),
+                                PillTransparencyMode.UltraClear => header.Contains("Ultra Clear"),
+                                PillTransparencyMode.FrostedGlass => header.Contains("Frosted"),
+                                PillTransparencyMode.SolidDark => header.Contains("Solid"),
+                                _ => false
+                            };
+                        }
+                    }
+                }
+            }
+        }
+        catch { }
+    }
+
+    public void ApplyPillStyleForState(IslandState state)
+    {
+        if (PillBorder == null) return;
+
+        if (state == IslandState.Circle)
+        {
+            if (TransparencyMode == PillTransparencyMode.UltraClear)
+            {
+                PillBorder.Background = new SolidColorBrush(Color.FromArgb(0x04, 0, 0, 0));
+            }
+            else if (TransparencyMode == PillTransparencyMode.SolidDark)
+            {
+                PillBorder.Background = new LinearGradientBrush(
+                    new GradientStopCollection
+                    {
+                        new GradientStop(Color.FromRgb(11, 15, 25), 0.0),
+                        new GradientStop(Color.FromRgb(6, 9, 16), 0.5),
+                        new GradientStop(Color.FromRgb(2, 4, 8), 1.0)
+                    },
+                    new Point(0, 0),
+                    new Point(0, 1));
+            }
+            else
+            {
+                byte alpha = TransparencyMode == PillTransparencyMode.FrostedGlass ? (byte)0x45 : (byte)0x18;
+                PillBorder.Background = new LinearGradientBrush(
+                    new GradientStopCollection
+                    {
+                        new GradientStop(Color.FromArgb(alpha, 0, 242, 254), 0.0),
+                        new GradientStop(Color.FromArgb(alpha, 6, 12, 24), 1.0)
+                    },
+                    new Point(0, 0),
+                    new Point(1, 1));
+            }
+
+            PillBorder.BorderBrush = new LinearGradientBrush(
+                new GradientStopCollection
+                {
+                    new GradientStop(Color.FromArgb(0xC0, 0, 242, 254), 0.0),
+                    new GradientStop(Color.FromArgb(0x80, 56, 189, 248), 0.5),
+                    new GradientStop(Color.FromArgb(0xC0, 0, 242, 254), 1.0)
+                },
+                new Point(0, 0),
+                new Point(1, 1));
+
+            PillBorder.BorderThickness = new Thickness(1.2);
+
+            PillBorder.Effect = new DropShadowEffect
+            {
+                Color = Color.FromRgb(0, 242, 254),
+                BlurRadius = 16,
+                ShadowDepth = 0,
+                Opacity = 0.45
+            };
+
+            if (PillGlossShine != null)
+            {
+                PillGlossShine.Visibility = Visibility.Collapsed;
+            }
+        }
+        else if (state == IslandState.Compact)
+        {
+            if (TransparencyMode == PillTransparencyMode.UltraClear)
+            {
+                PillBorder.Background = new SolidColorBrush(Color.FromArgb(0x06, 0, 0, 0));
+                PillBorder.Effect = new DropShadowEffect
+                {
+                    Color = Color.FromRgb(0, 0, 0),
+                    BlurRadius = 10,
+                    ShadowDepth = 1,
+                    Direction = 270,
+                    Opacity = 0.15
+                };
+            }
+            else if (TransparencyMode == PillTransparencyMode.SolidDark)
+            {
+                PillBorder.Background = new LinearGradientBrush(
+                    new GradientStopCollection
+                    {
+                        new GradientStop(Color.FromRgb(11, 15, 25), 0.0),
+                        new GradientStop(Color.FromRgb(6, 9, 16), 0.5),
+                        new GradientStop(Color.FromRgb(2, 4, 8), 1.0)
+                    },
+                    new Point(0, 0),
+                    new Point(0, 1));
+                PillBorder.Effect = new DropShadowEffect
+                {
+                    Color = Color.FromRgb(0, 0, 0),
+                    BlurRadius = 24,
+                    ShadowDepth = 4,
+                    Direction = 270,
+                    Opacity = 0.85
+                };
+            }
+            else
+            {
+                byte a1 = TransparencyMode == PillTransparencyMode.FrostedGlass ? (byte)0x65 : (byte)0x32;
+                byte a2 = TransparencyMode == PillTransparencyMode.FrostedGlass ? (byte)0x50 : (byte)0x22;
+                byte a3 = TransparencyMode == PillTransparencyMode.FrostedGlass ? (byte)0x40 : (byte)0x18;
+
+                PillBorder.Background = new LinearGradientBrush(
+                    new GradientStopCollection
+                    {
+                        new GradientStop(Color.FromArgb(a1, 11, 17, 28), 0.0),
+                        new GradientStop(Color.FromArgb(a2, 6, 9, 16), 0.5),
+                        new GradientStop(Color.FromArgb(a3, 2, 4, 8), 1.0)
+                    },
+                    new Point(0, 0),
+                    new Point(0, 1));
+
+                PillBorder.Effect = new DropShadowEffect
+                {
+                    Color = Color.FromRgb(0, 0, 0),
+                    BlurRadius = 14,
+                    ShadowDepth = 2,
+                    Direction = 270,
+                    Opacity = 0.25
+                };
+            }
+
+            PillBorder.BorderBrush = new LinearGradientBrush(
+                new GradientStopCollection
+                {
+                    new GradientStop(Color.FromArgb(0x50, 30, 41, 59), 0.0),
+                    new GradientStop(Color.FromArgb(0x95, 56, 189, 248), 0.25),
+                    new GradientStop(Color.FromArgb(0x50, 30, 41, 59), 0.75),
+                    new GradientStop(Color.FromArgb(0x30, 15, 23, 42), 1.0)
+                },
+                new Point(0, 0),
+                new Point(1, 1));
+
+            PillBorder.BorderThickness = new Thickness(1.2, 0, 1.2, 1.2);
+
+            if (PillGlossShine != null)
+            {
+                PillGlossShine.Visibility = Visibility.Visible;
+                PillGlossShine.Opacity = 0.12;
+            }
+        }
+        else // Expanded
+        {
+            PillBorder.Background = new LinearGradientBrush(
+                new GradientStopCollection
+                {
+                    new GradientStop(Color.FromArgb(0xF4, 11, 15, 25), 0.0),
+                    new GradientStop(Color.FromArgb(0xF8, 6, 9, 16), 0.5),
+                    new GradientStop(Color.FromArgb(0xFC, 2, 4, 8), 1.0)
+                },
+                new Point(0, 0),
+                new Point(0, 1));
+
+            PillBorder.BorderBrush = new LinearGradientBrush(
+                new GradientStopCollection
+                {
+                    new GradientStop(Color.FromRgb(30, 41, 59), 0.0),
+                    new GradientStop(Color.FromRgb(56, 189, 248), 0.25),
+                    new GradientStop(Color.FromRgb(30, 41, 59), 0.75),
+                    new GradientStop(Color.FromRgb(15, 23, 42), 1.0)
+                },
+                new Point(0, 0),
+                new Point(1, 1));
+
+            PillBorder.BorderThickness = new Thickness(1.2, 0, 1.2, 1.2);
+
+            PillBorder.Effect = new DropShadowEffect
+            {
+                Color = Color.FromRgb(0, 0, 0),
+                BlurRadius = 28,
+                ShadowDepth = 4,
+                Direction = 270,
+                Opacity = 0.85
+            };
+
+            if (PillGlossShine != null)
+            {
+                PillGlossShine.Visibility = Visibility.Visible;
+                PillGlossShine.Opacity = 0.45;
+            }
+        }
+    }
+
+    private double GetDefaultShadowOpacity(IslandState state)
+    {
+        return state switch
+        {
+            IslandState.Circle => 0.45,
+            IslandState.Compact => TransparencyMode switch
+            {
+                PillTransparencyMode.UltraClear => 0.15,
+                PillTransparencyMode.SolidDark => 0.85,
+                _ => 0.25
+            },
+            _ => 0.85
+        };
+    }
 
     private void MenuTestExcited_Click(object sender, RoutedEventArgs e) => _eventEngine.Publish(NovaEvent.Create("test.robot.expression", "Menu", "excited"));
     private void MenuTestConfused_Click(object sender, RoutedEventArgs e) => _eventEngine.Publish(NovaEvent.Create("test.robot.expression", "Menu", "confused"));
@@ -1295,6 +1784,58 @@ public partial class IslandWindow : Window
     {
         var item = (MenuItem)sender;
         _robotController.SetReducedMotion(item.IsChecked);
+    }
+
+    private void MenuFollowCursor_Click(object sender, RoutedEventArgs e)
+    {
+        bool isChecked = true;
+        if (sender is MenuItem menuItem)
+        {
+            isChecked = menuItem.IsChecked;
+        }
+
+        _robotController.SetFollowCursor(isChecked);
+        SyncFollowCursorMenuChecks(isChecked);
+        AppLogger.Info($"Eye Tracking (Follow Cursor) set to: {isChecked}.");
+    }
+
+    private void BtnToggleEyeTracking_Click(object sender, RoutedEventArgs e)
+    {
+        bool newState = !_robotController.Settings.FollowCursor;
+        _robotController.SetFollowCursor(newState);
+        SyncFollowCursorMenuChecks(newState);
+        AppLogger.Info($"Eye Tracking toggled via Mascot Slide button to: {newState}.");
+    }
+
+    private void SyncFollowCursorMenuChecks(bool isChecked)
+    {
+        try
+        {
+            var menu = (ContextMenu)Resources["IslandContextMenu"];
+            foreach (var item in menu.Items)
+            {
+                if (item is MenuItem mi && mi.Header?.ToString()?.Contains("Eye Tracking") == true)
+                {
+                    mi.IsChecked = isChecked;
+                }
+                else if (item is MenuItem subMenu && subMenu.HasItems)
+                {
+                    foreach (var subItem in subMenu.Items)
+                    {
+                        if (subItem is MenuItem subMi && subMi.Header?.ToString()?.Contains("Eye Tracking") == true)
+                        {
+                            subMi.IsChecked = isChecked;
+                        }
+                    }
+                }
+            }
+
+            if (BtnToggleEyeTracking != null)
+            {
+                BtnToggleEyeTracking.Content = isChecked ? "👀 Eye Tracking: ON" : "👀 Eye Tracking: OFF";
+            }
+        }
+        catch { }
     }
 
     public void UpdateMediaUI(MediaSessionSnapshot snapshot)
@@ -1411,10 +1952,16 @@ public partial class IslandWindow : Window
                 MediaPrevBtn.IsEnabled = snapshot.Capabilities.CanPrevious;
             }
 
-            if (HudProgressBar != null)
+            if (snapshot.Duration > TimeSpan.Zero)
             {
-                HudProgressBar.Width = snapshot.IsPlaying ? 55 : 20;
+                _playbackTotal = snapshot.Duration;
             }
+            bool isRecentSeek = (DateTime.UtcNow - _lastSeekUtc).TotalMilliseconds < 1500;
+            if (!_isScrubbingTimeline && !isRecentSeek)
+            {
+                _playbackElapsed = snapshot.Position;
+            }
+            UpdateTimelineUI();
 
             if (snapshot.IsPlaying)
             {
@@ -1423,6 +1970,11 @@ public partial class IslandWindow : Window
             else
             {
                 if (_equalizerTimer.IsEnabled) _equalizerTimer.Stop();
+            }
+
+            if (CurrentState == IslandState.Compact)
+            {
+                UpdateCompactPillSizeForMedia(true);
             }
         }
         else
@@ -1433,6 +1985,11 @@ public partial class IslandWindow : Window
             {
                 CompactMediaPanel.Visibility = Visibility.Collapsed;
                 CompactDefaultPanel.Visibility = Visibility.Visible;
+            }
+
+            if (CurrentState == IslandState.Compact)
+            {
+                UpdateCompactPillSizeForMedia(false);
             }
 
             // Expanded View - Revert to Standby
@@ -1484,6 +2041,59 @@ public partial class IslandWindow : Window
             {
                 HudProgressBar.Width = 0;
             }
+        }
+    }
+
+    /// <summary>
+    /// Dynamically expands or shrinks the Compact notch when media starts or stops,
+    /// increasing height and width to showcase the active track neatly below the robot face.
+    /// </summary>
+    private void UpdateCompactPillSizeForMedia(bool hasMedia)
+    {
+        if (CurrentState != IslandState.Compact || _isTransitioning) return;
+
+        double targetWidth = hasMedia ? IslandDimensions.CompactMediaWidth : IslandDimensions.CompactWidth;
+        double targetHeight = hasMedia ? IslandDimensions.CompactMediaHeight : IslandDimensions.CompactHeight;
+        double cr = hasMedia ? IslandDimensions.CompactMediaCornerRadius : IslandDimensions.CompactCornerRadius;
+        var targetCorner = new CornerRadius(0, 0, cr, cr);
+
+        double winWidth = hasMedia ? IslandDimensions.CompactMediaWindowWidth : IslandDimensions.CompactWindowWidth;
+        double winHeight = hasMedia ? IslandDimensions.CompactMediaWindowHeight : IslandDimensions.CompactWindowHeight;
+
+        // If expanding to show media, widen window bounds immediately so pill is not clipped
+        if (hasMedia)
+        {
+            SetWindowDimensionsAndCenter(winWidth, winHeight);
+        }
+
+        var duration = TimeSpan.FromMilliseconds(220);
+        var ease = new CubicEase { EasingMode = EasingMode.EaseOut };
+
+        double curW = PillBorder.ActualWidth > 0 ? PillBorder.ActualWidth : 
+            (!double.IsNaN(PillBorder.Width) && PillBorder.Width > 0 ? PillBorder.Width : IslandDimensions.CompactWidth);
+        double curH = PillBorder.ActualHeight > 0 ? PillBorder.ActualHeight : 
+            (!double.IsNaN(PillBorder.Height) && PillBorder.Height > 0 ? PillBorder.Height : IslandDimensions.CompactHeight);
+
+        if (Math.Abs(curW - targetWidth) > 1.0 || Math.Abs(curH - targetHeight) > 1.0)
+        {
+            var animW = new DoubleAnimation(curW, targetWidth, duration) { EasingFunction = ease };
+            var animH = new DoubleAnimation(curH, targetHeight, duration) { EasingFunction = ease };
+            var animCr = new CornerRadiusAnimation(PillBorder.CornerRadius, targetCorner, duration) { EasingFunction = ease };
+
+            if (!hasMedia)
+            {
+                animH.Completed += (s, e) =>
+                {
+                    if (CurrentState == IslandState.Compact && (_lastMediaSnapshot == null || !_lastMediaSnapshot.HasActiveSession))
+                    {
+                        SetWindowDimensionsAndCenter(winWidth, winHeight);
+                    }
+                };
+            }
+
+            PillBorder.BeginAnimation(WidthProperty, animW);
+            PillBorder.BeginAnimation(HeightProperty, animH);
+            PillBorder.BeginAnimation(Border.CornerRadiusProperty, animCr);
         }
     }
 
@@ -1659,6 +2269,17 @@ public partial class IslandWindow : Window
         _notesSaveTimer.Stop();
         _focusTimer.Stop();
 
+        // Flush persistent user data so nothing vanishes after restart
+        try
+        {
+            if (_todos != null) TodoStorage.SaveTodos(_todos);
+            if (NotesTextBox != null) NotesStorage.SaveNotes(NotesTextBox.Text);
+        }
+        catch (Exception ex)
+        {
+            AppLogger.Warning($"Error saving state during Window_Closed: {ex.Message}");
+        }
+
         foreach (var sub in _subscriptions)
         {
             sub.Dispose();
@@ -1669,6 +2290,7 @@ public partial class IslandWindow : Window
         _notificationService.Dispose();
         _trayManager.Dispose();
         _eventEngine.Dispose();
+        _robotController.Dispose();
 
         AppLogger.Info("IslandWindow closed and all resources cleanly disposed.");
     }

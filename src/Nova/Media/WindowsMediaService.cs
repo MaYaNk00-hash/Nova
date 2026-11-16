@@ -152,6 +152,7 @@ public sealed class WindowsMediaService : IMediaService
                         {
                             newSession.PlaybackInfoChanged += OnPlaybackInfoChanged;
                             newSession.MediaPropertiesChanged += OnMediaPropertiesChanged;
+                            newSession.TimelinePropertiesChanged += OnTimelinePropertiesChanged;
                         }
                         catch (Exception ex)
                         {
@@ -167,6 +168,7 @@ public sealed class WindowsMediaService : IMediaService
                 {
                     oldSessionToUnbind.PlaybackInfoChanged -= OnPlaybackInfoChanged;
                     oldSessionToUnbind.MediaPropertiesChanged -= OnMediaPropertiesChanged;
+                    oldSessionToUnbind.TimelinePropertiesChanged -= OnTimelinePropertiesChanged;
                 }
                 catch
                 {
@@ -206,6 +208,18 @@ public sealed class WindowsMediaService : IMediaService
         catch (Exception ex)
         {
             AppLogger.Warning($"Error handling MediaPropertiesChanged: {ex.Message}");
+        }
+    }
+
+    private async void OnTimelinePropertiesChanged(GlobalSystemMediaTransportControlsSession sender, TimelinePropertiesChangedEventArgs args)
+    {
+        try
+        {
+            await FetchSnapshotFromSessionAsync(sender);
+        }
+        catch (Exception ex)
+        {
+            AppLogger.Warning($"Error handling TimelinePropertiesChanged: {ex.Message}");
         }
     }
 
@@ -336,6 +350,53 @@ public sealed class WindowsMediaService : IMediaService
                 }
             }
 
+            // Timeline Properties (Current Position and Track Duration)
+            TimeSpan position = TimeSpan.Zero;
+            TimeSpan duration = TimeSpan.Zero;
+            try
+            {
+                var timeline = session.GetTimelineProperties();
+                if (timeline != null)
+                {
+                    var start = timeline.StartTime;
+                    var end = timeline.EndTime;
+                    var rawPos = timeline.Position;
+
+                    if (end > start)
+                    {
+                        duration = end - start;
+                        position = rawPos >= start ? rawPos - start : rawPos;
+                    }
+                    else
+                    {
+                        duration = end;
+                        position = rawPos;
+                    }
+
+                    if (position < TimeSpan.Zero) position = TimeSpan.Zero;
+                    if (duration < TimeSpan.Zero) duration = TimeSpan.Zero;
+
+                    // If playing, calculate real-time position using time elapsed since LastUpdatedTime
+                    if (playbackStatus == MediaPlaybackStatus.Playing && timeline.LastUpdatedTime != default)
+                    {
+                        var lastUpdatedUtc = timeline.LastUpdatedTime.ToUniversalTime();
+                        var delta = DateTimeOffset.UtcNow - lastUpdatedUtc;
+                        if (delta > TimeSpan.Zero && delta < TimeSpan.FromHours(12))
+                        {
+                            position += delta;
+                            if (duration > TimeSpan.Zero && position > duration)
+                            {
+                                position = duration;
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                AppLogger.Warning($"Error reading timeline properties: {ex.Message}");
+            }
+
             var previousSnapshot = CurrentSnapshot;
             var newSnapshot = new MediaSessionSnapshot
             {
@@ -345,6 +406,8 @@ public sealed class WindowsMediaService : IMediaService
                 TrackInfo = trackInfo,
                 Capabilities = capabilities,
                 HasActiveSession = true,
+                Position = position,
+                Duration = duration,
                 Timestamp = DateTimeOffset.UtcNow
             };
 
@@ -549,6 +612,30 @@ public sealed class WindowsMediaService : IMediaService
         }
     }
 
+    public async Task<bool> TrySeekAsync(TimeSpan position)
+    {
+        if (_isDisposed) throw new ObjectDisposedException(nameof(WindowsMediaService));
+
+        GlobalSystemMediaTransportControlsSession? session;
+        lock (_syncLock)
+        {
+            session = _currentSession;
+        }
+
+        if (session == null) return false;
+
+        try
+        {
+            AppLogger.Info($"Seeking media session to {position:mm\\:ss} ({position.Ticks} ticks)...");
+            return await session.TryChangePlaybackPositionAsync(position.Ticks);
+        }
+        catch (Exception ex)
+        {
+            AppLogger.Warning($"Seek failed on active session: {ex.Message}");
+            return false;
+        }
+    }
+
     public void Dispose()
     {
         lock (_syncLock)
@@ -570,6 +657,7 @@ public sealed class WindowsMediaService : IMediaService
             {
                 _currentSession.PlaybackInfoChanged -= OnPlaybackInfoChanged;
                 _currentSession.MediaPropertiesChanged -= OnMediaPropertiesChanged;
+                _currentSession.TimelinePropertiesChanged -= OnTimelinePropertiesChanged;
                 _currentSession = null;
             }
 

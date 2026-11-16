@@ -104,10 +104,88 @@ public class IslandWindowTests
                 window.TransitionTo(IslandState.Compact);
                 Assert.Equal(IslandState.Compact, window.CurrentState);
 
+                window.TransitionTo(IslandState.Circle);
+                Assert.Equal(IslandState.Circle, window.CurrentState);
+
+                window.TransitionTo(IslandState.Compact);
+                Assert.Equal(IslandState.Compact, window.CurrentState);
+
                 window.ToggleAlwaysOnTop();
                 Assert.False(window.Topmost, "Always on top should toggle to false.");
                 window.ToggleAlwaysOnTop();
                 Assert.True(window.Topmost, "Always on top should toggle back to true.");
+
+                window.Close();
+            }
+            catch (Exception ex)
+            {
+                threadException = ex;
+            }
+        });
+
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        thread.Join(5000);
+
+        if (threadException != null)
+        {
+            throw new InvalidOperationException($"STA thread failed: {threadException.Message}", threadException);
+        }
+    }
+
+    [Fact("Verify IslandWindow pill transparency in Compact and Circle modes")]
+    public void IslandWindow_PillTransparency_AppliedInCompactAndCircle()
+    {
+        Exception? threadException = null;
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                var window = new IslandWindow();
+
+                // 1. Initial State: Compact should have translucent/transparent background
+                Assert.Equal(IslandState.Compact, window.CurrentState);
+                Assert.NotNull(window.PillBorder.Background);
+                if (window.PillBorder.Background is System.Windows.Media.LinearGradientBrush lgb)
+                {
+                    Assert.True(lgb.GradientStops[0].Color.A < 255, "Compact pill background should be transparent / translucent.");
+                }
+
+                // 2. Transition to Circle mode: Should be transparent with cyan aura
+                window.TransitionTo(IslandState.Circle);
+                Assert.Equal(IslandState.Circle, window.CurrentState);
+                Assert.NotNull(window.PillBorder.Background);
+                if (window.PillBorder.Background is System.Windows.Media.LinearGradientBrush circleBrush)
+                {
+                    Assert.True(circleBrush.GradientStops[0].Color.A < 255, "Circle bubble background should be transparent / translucent.");
+                }
+                var shadow = window.PillBorder.Effect as System.Windows.Media.Effects.DropShadowEffect;
+                Assert.NotNull(shadow);
+                Assert.Equal(System.Windows.Media.Color.FromRgb(0, 242, 254), shadow!.Color);
+
+                // 3. Transition to Expanded: Should have deep obsidian dark glass
+                window.TransitionTo(IslandState.Expanded);
+                Assert.Equal(IslandState.Expanded, window.CurrentState);
+                if (window.PillBorder.Background is System.Windows.Media.LinearGradientBrush expBrush)
+                {
+                    Assert.True(expBrush.GradientStops[0].Color.A > 200, "Expanded mode should have deep dark glass styling.");
+                }
+
+                // 4. Transition back to Compact: Should restore transparent / translucent glass
+                window.TransitionTo(IslandState.Compact);
+                Assert.Equal(IslandState.Compact, window.CurrentState);
+                if (window.PillBorder.Background is System.Windows.Media.LinearGradientBrush compBrush2)
+                {
+                    Assert.True(compBrush2.GradientStops[0].Color.A < 255, "Restored compact pill should be transparent.");
+                }
+
+                // 5. Test changing transparency mode to UltraClear
+                window.SetTransparencyMode(PillTransparencyMode.UltraClear);
+                Assert.Equal(PillTransparencyMode.UltraClear, window.TransparencyMode);
+                if (window.PillBorder.Background is System.Windows.Media.SolidColorBrush scb)
+                {
+                    Assert.True(scb.Color.A <= 10, "UltraClear should be nearly or fully transparent.");
+                }
 
                 window.Close();
             }

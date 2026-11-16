@@ -14,7 +14,23 @@ public class RobotTests
         Assert.Equal(AnimationIntensity.Normal, settings.Intensity);
         Assert.False(settings.ReducedMotion, "Reduced motion should be off by default.");
         Assert.False(settings.BatterySaver, "Battery saver should be off by default.");
+        Assert.True(settings.FollowCursor, "FollowCursor should be on by default.");
         Assert.True(settings.ShouldFloat, "Robot should float by default.");
+    }
+
+    [Fact("Verify RobotSettings FollowCursor toggles correctly and syncs with controller")]
+    public void RobotSettings_FollowCursor_TogglesCorrectly()
+    {
+        var controller = new RobotController();
+        Assert.True(controller.Settings.FollowCursor);
+
+        controller.SetFollowCursor(false);
+        Assert.False(controller.Settings.FollowCursor);
+
+        controller.SetFollowCursor(true);
+        Assert.True(controller.Settings.FollowCursor);
+
+        controller.Dispose();
     }
 
     [Fact("Verify RobotSettings personality blink intervals")]
@@ -170,6 +186,11 @@ public class RobotTests
                 Assert.Equal(RobotState.Sleeping, robot1.CurrentState);
                 Assert.Equal(RobotState.Sleeping, robot2.CurrentState);
 
+                // Test Island Circle -> WakeUp
+                controller.OnIslandStateChanged(IslandState.Circle);
+                Assert.Equal(RobotState.Waking, robot1.CurrentState);
+                Assert.Equal(RobotState.Waking, robot2.CurrentState);
+
                 // Test Island Expanded -> WakeUp
                 controller.OnIslandStateChanged(IslandState.Expanded);
                 Assert.Equal(RobotState.Waking, robot1.CurrentState);
@@ -183,6 +204,55 @@ public class RobotTests
                 controller.TriggerConfusedTestEvent();
                 Assert.Equal(RobotState.Confused, robot1.CurrentState);
                 Assert.Equal(RobotState.Confused, robot2.CurrentState);
+            }
+            catch (Exception ex)
+            {
+                threadException = ex;
+            }
+        });
+
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        thread.Join(5000);
+
+        if (threadException != null)
+        {
+            throw new InvalidOperationException($"STA thread failed: {threadException.Message}", threadException);
+        }
+    }
+
+    [Fact("Verify RobotCompanion eye gaze tracks cursor across full desktop quadrants")]
+    public void RobotCompanion_GlobalScreenEyeTracking_TracksCursorAcrossFullDesktop()
+    {
+        Exception? threadException = null;
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                var robot = new RobotCompanion();
+
+                // 1. Bottom-Right screen vector (e.g. mouse at bottom right of 1080p display)
+                robot.UpdateGazeVector(800.0, 600.0);
+                Assert.True(robot.GazeTransform.X > 0, "Gaze X should deflect right for positive deltaX.");
+                Assert.True(robot.GazeTransform.Y > 0, "Gaze Y should deflect down for positive deltaY.");
+                Assert.True(robot.HeadRotateTransform.Angle > 0, "Head should subtly tilt right.");
+
+                // 2. Bottom-Left screen vector (e.g. mouse at bottom left of display)
+                robot.UpdateGazeVector(-800.0, 600.0);
+                Assert.True(robot.GazeTransform.X < 0, "Gaze X should deflect left for negative deltaX.");
+                Assert.True(robot.GazeTransform.Y > 0, "Gaze Y should deflect down for positive deltaY.");
+                Assert.True(robot.HeadRotateTransform.Angle < 0, "Head should subtly tilt left.");
+
+                // 3. Center reset
+                robot.UpdateGazeVector(0.0, 0.0);
+                Assert.Equal(0.0, robot.GazeTransform.X);
+                Assert.Equal(0.0, robot.GazeTransform.Y);
+
+                // 4. FollowCursor toggled off
+                robot.Settings.FollowCursor = false;
+                robot.UpdateGazeVector(500.0, 500.0);
+                Assert.Equal(0.0, robot.GazeTransform.X);
+                Assert.Equal(0.0, robot.GazeTransform.Y);
             }
             catch (Exception ex)
             {

@@ -1,4 +1,7 @@
+using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text.Json;
 using Nova.Core;
 
@@ -14,6 +17,8 @@ public class TodoItem
 
 public static class TodoStorage
 {
+    private static readonly object _fileLock = new();
+
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         WriteIndented = true,
@@ -22,54 +27,73 @@ public static class TodoStorage
 
     public static List<TodoItem> LoadTodos()
     {
-        try
+        lock (_fileLock)
         {
-            if (File.Exists(AppInfo.TodoFilePath))
+            try
             {
-                var json = File.ReadAllText(AppInfo.TodoFilePath);
-                if (!string.IsNullOrWhiteSpace(json))
+                var filePath = AppInfo.TodoFilePath;
+                if (File.Exists(filePath))
                 {
-                    var items = JsonSerializer.Deserialize<List<TodoItem>>(json, JsonOptions);
-                    if (items != null)
+                    var json = File.ReadAllText(filePath);
+                    if (!string.IsNullOrWhiteSpace(json))
                     {
-                        return items;
+                        var items = JsonSerializer.Deserialize<List<TodoItem>>(json, JsonOptions);
+                        if (items != null)
+                        {
+                            return items;
+                        }
                     }
                 }
             }
-        }
-        catch (Exception ex)
-        {
-            AppLogger.Warning($"Failed to load todos from {AppInfo.TodoFilePath}: {ex.Message}");
-        }
+            catch (Exception ex)
+            {
+                AppLogger.Warning($"Failed to load todos from {AppInfo.TodoFilePath}: {ex.Message}");
+            }
 
-        // Return welcoming default tasks on first launch
-        return new List<TodoItem>
-        {
-            new TodoItem { Title = "Welcome to NOVA Desktop Companion!", IsCompleted = true },
-            new TodoItem { Title = "Play background music on YouTube Music", IsCompleted = false },
-            new TodoItem { Title = "Explore Quick Notes and Focus Timer", IsCompleted = false }
-        };
+            // Return welcoming default tasks on very first launch only if file doesn't exist
+            if (!File.Exists(AppInfo.TodoFilePath))
+            {
+                var defaults = new List<TodoItem>
+                {
+                    new TodoItem { Title = "Welcome to NOVA Desktop Companion!", IsCompleted = true },
+                    new TodoItem { Title = "Play background music on YouTube Music", IsCompleted = false },
+                    new TodoItem { Title = "Explore Quick Notes and Focus Timer", IsCompleted = false }
+                };
+                SaveTodos(defaults);
+                return defaults;
+            }
+
+            return new List<TodoItem>();
+        }
     }
 
     public static bool SaveTodos(IEnumerable<TodoItem> items)
     {
-        try
+        lock (_fileLock)
         {
-            var dir = AppInfo.StorageDirectory;
-            if (!Directory.Exists(dir))
+            try
             {
-                Directory.CreateDirectory(dir);
-            }
+                var dir = AppInfo.StorageDirectory;
+                if (!Directory.Exists(dir))
+                {
+                    Directory.CreateDirectory(dir);
+                }
 
-            var json = JsonSerializer.Serialize(items, JsonOptions);
-            File.WriteAllText(AppInfo.TodoFilePath, json);
-            return true;
-        }
-        catch (Exception ex)
-        {
-            AppLogger.Warning($"Failed to save todos to {AppInfo.TodoFilePath}: {ex.Message}");
-            return false;
+                var list = items.ToList();
+                var json = JsonSerializer.Serialize(list, JsonOptions);
+                var filePath = AppInfo.TodoFilePath;
+                var tmpPath = filePath + ".tmp";
+
+                // Atomic write to avoid partial or corrupted writes
+                File.WriteAllText(tmpPath, json);
+                File.Move(tmpPath, filePath, overwrite: true);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                AppLogger.Warning($"Failed to save todos to {AppInfo.TodoFilePath}: {ex.Message}");
+                return false;
+            }
         }
     }
 }
-

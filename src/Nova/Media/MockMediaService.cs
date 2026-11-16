@@ -20,6 +20,8 @@ public sealed class MockMediaService : IMediaService
     public int TogglePlayPauseCallCount { get; private set; }
     public int NextCallCount { get; private set; }
     public int PreviousCallCount { get; private set; }
+    public int SeekCallCount { get; private set; }
+    public TimeSpan LastSeekPosition { get; private set; }
     public bool IsDisposed => _isDisposed;
 
     public MockMediaService(EventEngine? eventEngine = null)
@@ -141,6 +143,15 @@ public sealed class MockMediaService : IMediaService
         if (!_snapshot.Capabilities.CanPrevious)
             return Task.FromResult(false);
 
+        return Task.FromResult(true);
+    }
+
+    public Task<bool> TrySeekAsync(TimeSpan position)
+    {
+        if (_isDisposed) throw new ObjectDisposedException(nameof(MockMediaService));
+        SeekCallCount++;
+        LastSeekPosition = position;
+        SetSnapshot(_snapshot with { Position = position });
         return Task.FromResult(true);
     }
 
