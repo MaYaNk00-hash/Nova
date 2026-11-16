@@ -22,8 +22,8 @@ public static class IslandDimensions
     public const double CircleWidth = 48.0;
     public const double CircleHeight = 48.0;
     public const double CircleCornerRadius = 24.0;
-    public const double CircleWindowWidth = 80.0;
-    public const double CircleWindowHeight = 74.0;
+    public const double CircleWindowWidth = 110.0;
+    public const double CircleWindowHeight = 96.0;
 
     // Compact Pill Notch (Minimalist: Pure Robot Face & Eyes)
     public const double CompactWidth = 156.0;              // Balanced minimalist notch for Robot Mascot

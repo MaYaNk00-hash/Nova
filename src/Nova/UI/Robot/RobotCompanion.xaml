@@ -4,23 +4,188 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d" 
-             d:DesignHeight="64" d:DesignWidth="64">
+             d:DesignHeight="78" d:DesignWidth="64">
 
     <Grid x:Name="RootContainer" Width="{Binding CompanionSize, RelativeSource={RelativeSource AncestorType=UserControl}}" 
           Height="{Binding CompanionSize, RelativeSource={RelativeSource AncestorType=UserControl}}">
         <Viewbox Stretch="Uniform">
-            <Canvas Width="64" Height="64">
-                <!-- Master Head Transform (Float & Nod) -->
-                <Grid x:Name="HeadContainer" Width="64" Height="64">
+            <!-- Full Complete Body Canvas (Head, Torso, Reactor Core, Arms, Hands, Legs, Boots) -->
+            <Canvas x:Name="MasterCanvas" Width="64" Height="78">
+
+                <!-- 1. LEGS & MAGNETIC HOVER BOOTS (Drawn behind torso) -->
+                <!-- Left Leg -->
+                <Grid x:Name="LeftLegContainer" Canvas.Left="21" Canvas.Top="56" Width="9" Height="19" RenderTransformOrigin="0.5,0.08">
+                    <Grid.RenderTransform>
+                        <TransformGroup>
+                            <RotateTransform x:Name="LeftLegRotate" Angle="0" CenterX="4.5" CenterY="1.5"/>
+                            <TranslateTransform x:Name="LeftLegTranslate" X="0" Y="0"/>
+                        </TransformGroup>
+                    </Grid.RenderTransform>
+                    <!-- Thigh & Calf Segment -->
+                    <Border Width="6" Height="11" CornerRadius="3" Background="#E2E8F0" BorderBrush="#94A3B8" BorderThickness="0.8" HorizontalAlignment="Center" VerticalAlignment="Top"/>
+                    <!-- Hover Boot -->
+                    <Border Width="9.5" Height="7" CornerRadius="2.5" BorderThickness="0.8" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,1">
+                        <Border.BorderBrush>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                <GradientStop Color="#FFFFFF" Offset="0.0"/>
+                                <GradientStop Color="#38BDF8" Offset="0.5"/>
+                                <GradientStop Color="#64748B" Offset="1.0"/>
+                            </LinearGradientBrush>
+                        </Border.BorderBrush>
+                        <Border.Background>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                <GradientStop Color="#FFFFFF" Offset="0.0"/>
+                                <GradientStop Color="#E2E8F0" Offset="1.0"/>
+                            </LinearGradientBrush>
+                        </Border.Background>
+                        <!-- Magnetic Sole Cyan Glow Line -->
+                        <Rectangle Width="7.5" Height="1.4" RadiusX="0.7" RadiusY="0.7" Fill="#00F2FE" VerticalAlignment="Bottom" Margin="0,0,0,0.6">
+                            <Rectangle.Effect>
+                                <DropShadowEffect Color="#00F2FE" BlurRadius="4" ShadowDepth="0" Opacity="0.95"/>
+                            </Rectangle.Effect>
+                        </Rectangle>
+                    </Border>
+                </Grid>
+
+                <!-- Right Leg -->
+                <Grid x:Name="RightLegContainer" Canvas.Left="34" Canvas.Top="56" Width="9" Height="19" RenderTransformOrigin="0.5,0.08">
+                    <Grid.RenderTransform>
+                        <TransformGroup>
+                            <RotateTransform x:Name="RightLegRotate" Angle="0" CenterX="4.5" CenterY="1.5"/>
+                            <TranslateTransform x:Name="RightLegTranslate" X="0" Y="0"/>
+                        </TransformGroup>
+                    </Grid.RenderTransform>
+                    <!-- Thigh & Calf Segment -->
+                    <Border Width="6" Height="11" CornerRadius="3" Background="#E2E8F0" BorderBrush="#94A3B8" BorderThickness="0.8" HorizontalAlignment="Center" VerticalAlignment="Top"/>
+                    <!-- Hover Boot -->
+                    <Border Width="9.5" Height="7" CornerRadius="2.5" BorderThickness="0.8" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,1">
+                        <Border.BorderBrush>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                <GradientStop Color="#FFFFFF" Offset="0.0"/>
+                                <GradientStop Color="#38BDF8" Offset="0.5"/>
+                                <GradientStop Color="#64748B" Offset="1.0"/>
+                            </LinearGradientBrush>
+                        </Border.BorderBrush>
+                        <Border.Background>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                <GradientStop Color="#FFFFFF" Offset="0.0"/>
+                                <GradientStop Color="#E2E8F0" Offset="1.0"/>
+                            </LinearGradientBrush>
+                        </Border.Background>
+                        <!-- Magnetic Sole Cyan Glow Line -->
+                        <Rectangle Width="7.5" Height="1.4" RadiusX="0.7" RadiusY="0.7" Fill="#00F2FE" VerticalAlignment="Bottom" Margin="0,0,0,0.6">
+                            <Rectangle.Effect>
+                                <DropShadowEffect Color="#00F2FE" BlurRadius="4" ShadowDepth="0" Opacity="0.95"/>
+                            </Rectangle.Effect>
+                        </Rectangle>
+                    </Border>
+                </Grid>
+
+                <!-- 2. TORSO CHASSIS & GLOWING ARC REACTOR CORE -->
+                <Grid x:Name="TorsoContainer" Canvas.Left="0" Canvas.Top="38" Width="64" Height="24">
+                    <!-- Titanium Neck Joint Connector -->
+                    <Rectangle Width="9" Height="4" RadiusX="2" RadiusY="2" Fill="#64748B" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,0"/>
+
+                    <!-- Torso Body Shell (Matching pearlescent metallic gradient) -->
+                    <Border x:Name="TorsoChassis" 
+                            Width="26" Height="19" 
+                            CornerRadius="8" 
+                            BorderThickness="1.2" 
+                            HorizontalAlignment="Center" 
+                            VerticalAlignment="Center" 
+                            Margin="0,3,0,0">
+                        <Border.BorderBrush>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                <GradientStop Color="#FFFFFF" Offset="0.0"/>
+                                <GradientStop Color="#38BDF8" Offset="0.35"/>
+                                <GradientStop Color="#64748B" Offset="1.0"/>
+                            </LinearGradientBrush>
+                        </Border.BorderBrush>
+                        <Border.Background>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="0.8,1">
+                                <GradientStop Color="#FFFFFF" Offset="0.0"/>
+                                <GradientStop Color="#F8FAFC" Offset="0.2"/>
+                                <GradientStop Color="#E2E8F0" Offset="0.6"/>
+                                <GradientStop Color="#CBD5E1" Offset="1.0"/>
+                            </LinearGradientBrush>
+                        </Border.Background>
+                        <Border.Effect>
+                            <DropShadowEffect BlurRadius="6" ShadowDepth="1.5" Direction="270" Color="#000000" Opacity="0.25"/>
+                        </Border.Effect>
+
+                        <Grid>
+                            <!-- Glowing Chest Reactor Core / Emblem -->
+                            <Border Width="8.5" Height="8.5" 
+                                    CornerRadius="4.25" 
+                                    Background="#0A101D" 
+                                    BorderBrush="#38BDF8" 
+                                    BorderThickness="0.8" 
+                                    HorizontalAlignment="Center" 
+                                    VerticalAlignment="Top" 
+                                    Margin="0,2.5,0,0">
+                                <Ellipse x:Name="ChestCoreLed" Width="4.5" Height="4.5" Fill="#00F2FE" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <Ellipse.Effect>
+                                        <DropShadowEffect Color="#00F2FE" BlurRadius="5" ShadowDepth="0" Opacity="0.95"/>
+                                    </Ellipse.Effect>
+                                </Ellipse>
+                            </Border>
+
+                            <!-- Cybernetic Abdominal Seam Line -->
+                            <Rectangle Width="11" Height="1" RadiusX="0.5" RadiusY="0.5" Fill="#94A3B8" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,2.5"/>
+                        </Grid>
+                    </Border>
+                </Grid>
+
+                <!-- 3. ARMS & HANDS (Left & Right) -->
+                <!-- Left Arm & Hand -->
+                <Grid x:Name="LeftArmContainer" Canvas.Left="10" Canvas.Top="41" Width="9" Height="19" RenderTransformOrigin="0.5,0.1">
+                    <Grid.RenderTransform>
+                        <RotateTransform x:Name="LeftArmRotate" Angle="10" CenterX="4.5" CenterY="2"/>
+                    </Grid.RenderTransform>
+                    <!-- Shoulder Node -->
+                    <Ellipse Width="6" Height="6" Fill="#CBD5E1" HorizontalAlignment="Center" VerticalAlignment="Top"/>
+                    <!-- Arm Limb -->
+                    <Border Width="5.5" Height="12" CornerRadius="2.75" Background="#E2E8F0" BorderBrush="#94A3B8" BorderThickness="0.7" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,2,0,0"/>
+                    <!-- Cyan Wrist Band -->
+                    <Border Width="6.5" Height="2" CornerRadius="1" Background="#00F2FE" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,11,0,0">
+                        <Border.Effect>
+                            <DropShadowEffect Color="#00F2FE" BlurRadius="3" ShadowDepth="0" Opacity="0.8"/>
+                        </Border.Effect>
+                    </Border>
+                    <!-- Rounded Hand -->
+                    <Border Width="6.5" Height="6" CornerRadius="3.25" Background="#FFFFFF" BorderBrush="#CBD5E1" BorderThickness="0.6" HorizontalAlignment="Center" VerticalAlignment="Bottom"/>
+                </Grid>
+
+                <!-- Right Arm & Hand -->
+                <Grid x:Name="RightArmContainer" Canvas.Left="45" Canvas.Top="41" Width="9" Height="19" RenderTransformOrigin="0.5,0.1">
+                    <Grid.RenderTransform>
+                        <RotateTransform x:Name="RightArmRotate" Angle="-10" CenterX="4.5" CenterY="2"/>
+                    </Grid.RenderTransform>
+                    <!-- Shoulder Node -->
+                    <Ellipse Width="6" Height="6" Fill="#CBD5E1" HorizontalAlignment="Center" VerticalAlignment="Top"/>
+                    <!-- Arm Limb -->
+                    <Border Width="5.5" Height="12" CornerRadius="2.75" Background="#E2E8F0" BorderBrush="#94A3B8" BorderThickness="0.7" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,2,0,0"/>
+                    <!-- Cyan Wrist Band -->
+                    <Border Width="6.5" Height="2" CornerRadius="1" Background="#00F2FE" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,11,0,0">
+                        <Border.Effect>
+                            <DropShadowEffect Color="#00F2FE" BlurRadius="3" ShadowDepth="0" Opacity="0.8"/>
+                        </Border.Effect>
+                    </Border>
+                    <!-- Rounded Hand -->
+                    <Border Width="6.5" Height="6" CornerRadius="3.25" Background="#FFFFFF" BorderBrush="#CBD5E1" BorderThickness="0.6" HorizontalAlignment="Center" VerticalAlignment="Bottom"/>
+                </Grid>
+
+                <!-- 4. MASTER HEAD CONTAINER (Float, Nod, Eyes Gaze Tracking, Expressive Neon Eyes) -->
+                <Grid x:Name="HeadContainer" Canvas.Left="0" Canvas.Top="0" Width="64" Height="44">
                     <Grid.RenderTransform>
                         <TransformGroup>
                             <TranslateTransform x:Name="HeadFloatTransform" X="0" Y="0"/>
-                            <RotateTransform x:Name="HeadRotateTransform" Angle="0" CenterX="32" CenterY="32"/>
+                            <RotateTransform x:Name="HeadRotateTransform" Angle="0" CenterX="32" CenterY="24"/>
                         </TransformGroup>
                     </Grid.RenderTransform>
 
                     <!-- Left Ear / Cyber Node -->
-                    <Path Data="M 10 24 C 6 24, 4 28, 4 33 C 4 38, 6 42, 10 42 Z">
+                    <Path Data="M 10 18 C 6 18, 4 22, 4 27 C 4 32, 6 36, 10 36 Z">
                         <Path.Fill>
                             <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
                                 <GradientStop Color="#FFFFFF" Offset="0.0"/>
@@ -28,14 +193,14 @@
                             </LinearGradientBrush>
                         </Path.Fill>
                     </Path>
-                    <Ellipse Canvas.Left="5" Canvas.Top="28" Width="4" Height="4" Fill="#00F2FE" HorizontalAlignment="Left" Margin="4,30,0,0" VerticalAlignment="Top">
+                    <Ellipse Width="4" Height="4" Fill="#00F2FE" HorizontalAlignment="Left" Margin="4,25,0,0" VerticalAlignment="Top">
                         <Ellipse.Effect>
                             <DropShadowEffect Color="#00F2FE" BlurRadius="5" ShadowDepth="0" Opacity="0.9"/>
                         </Ellipse.Effect>
                     </Ellipse>
 
                     <!-- Right Ear / Cyber Node -->
-                    <Path Data="M 54 24 C 58 24, 60 28, 60 33 C 60 38, 58 42, 54 42 Z">
+                    <Path Data="M 54 18 C 58 18, 60 22, 60 27 C 60 32, 58 36, 54 36 Z">
                         <Path.Fill>
                             <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
                                 <GradientStop Color="#FFFFFF" Offset="0.0"/>
@@ -43,27 +208,27 @@
                             </LinearGradientBrush>
                         </Path.Fill>
                     </Path>
-                    <Ellipse Width="4" Height="4" Fill="#00F2FE" HorizontalAlignment="Right" Margin="0,30,4,0" VerticalAlignment="Top">
+                    <Ellipse Width="4" Height="4" Fill="#00F2FE" HorizontalAlignment="Right" Margin="0,25,4,0" VerticalAlignment="Top">
                         <Ellipse.Effect>
                             <DropShadowEffect Color="#00F2FE" BlurRadius="5" ShadowDepth="0" Opacity="0.9"/>
                         </Ellipse.Effect>
                     </Ellipse>
 
                     <!-- Antenna Top LED Pin -->
-                    <Rectangle Width="2" Height="6" Fill="#CBD5E1" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,4,0,0"/>
-                    <Ellipse x:Name="AntennaLed" Width="5" Height="5" Fill="#00F2FE" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,2,0,0">
+                    <Rectangle Width="2" Height="6" Fill="#CBD5E1" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,3,0,0"/>
+                    <Ellipse x:Name="AntennaLed" Width="5" Height="5" Fill="#00F2FE" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,1,0,0">
                         <Ellipse.Effect>
                             <DropShadowEffect Color="#00F2FE" BlurRadius="6" ShadowDepth="0" Opacity="0.95"/>
                         </Ellipse.Effect>
                     </Ellipse>
 
-                    <!-- Shiny Metallic Head Shell with Specular Gloss (Noticeable & Crisp) -->
+                    <!-- Shiny Metallic Head Shell with Specular Gloss -->
                     <Border x:Name="HeadChassis" 
-                            Width="50" Height="46" 
-                            CornerRadius="17" 
+                            Width="46" Height="36" 
+                            CornerRadius="14" 
                             BorderThickness="1.5" 
                             HorizontalAlignment="Center" 
-                            VerticalAlignment="Center" 
+                            VerticalAlignment="Top" 
                             Margin="0,5,0,0">
                         <Border.BorderBrush>
                             <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
@@ -84,10 +249,10 @@
                             <DropShadowEffect BlurRadius="8" ShadowDepth="2" Direction="270" Color="#000000" Opacity="0.3"/>
                         </Border.Effect>
 
-                        <!-- Visor Faceplate (Obsidian Gloss - Enlarged for Maximum Eye Visibility) -->
+                        <!-- Visor Faceplate (Obsidian Gloss - High Definition) -->
                         <Border x:Name="VisorPlate" 
-                                Width="42" Height="30" 
-                                CornerRadius="12" 
+                                Width="38" Height="24" 
+                                CornerRadius="10" 
                                 BorderThickness="1" 
                                 HorizontalAlignment="Center" 
                                 VerticalAlignment="Center"
@@ -108,7 +273,7 @@
 
                             <Grid>
                                 <!-- Visor Top Gloss Reflection -->
-                                <Border Height="9" VerticalAlignment="Top" CornerRadius="11,11,0,0" Opacity="0.2" IsHitTestVisible="False">
+                                <Border Height="8" VerticalAlignment="Top" CornerRadius="9,9,0,0" Opacity="0.2" IsHitTestVisible="False">
                                     <Border.Background>
                                         <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
                                             <GradientStop Color="#FFFFFF" Offset="0.0"/>
@@ -125,82 +290,82 @@
                                     </Grid.RenderTransform>
 
                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
-                                        <!-- Left Eye (Big & Noticeable) -->
-                                        <Grid Width="13" Height="17" Margin="0,0,3.5,0">
+                                        <!-- Left Eye -->
+                                        <Grid Width="11" Height="15" Margin="0,0,3,0">
                                             <Grid.RenderTransform>
                                                 <TransformGroup>
-                                                    <ScaleTransform x:Name="LeftEyeScale" ScaleX="1.0" ScaleY="1.0" CenterX="6.5" CenterY="8.5"/>
-                                                    <RotateTransform x:Name="LeftEyeRotate" Angle="0" CenterX="6.5" CenterY="8.5"/>
+                                                    <ScaleTransform x:Name="LeftEyeScale" ScaleX="1.0" ScaleY="1.0" CenterX="5.5" CenterY="7.5"/>
+                                                    <RotateTransform x:Name="LeftEyeRotate" Angle="0" CenterX="5.5" CenterY="7.5"/>
                                                 </TransformGroup>
                                             </Grid.RenderTransform>
 
-                                            <!-- Normal Open Eye (Luminous Cyan Neon) -->
+                                            <!-- Normal Open Eye -->
                                             <Border x:Name="LeftEyeNormal" 
-                                                    Width="9.5" Height="13.5" 
-                                                    CornerRadius="4.75" 
+                                                    Width="8.5" Height="12" 
+                                                    CornerRadius="4.25" 
                                                     Background="#00F2FE">
                                                 <Border.Effect>
-                                                    <DropShadowEffect Color="#00F2FE" BlurRadius="8" ShadowDepth="0" Opacity="0.95"/>
+                                                    <DropShadowEffect Color="#00F2FE" BlurRadius="7" ShadowDepth="0" Opacity="0.95"/>
                                                 </Border.Effect>
                                             </Border>
 
                                             <!-- Happy Arc Eye (Chevrons) -->
                                             <Path x:Name="LeftEyeHappy" 
-                                                  Data="M 1 11 Q 6.5 3 12 11" 
+                                                  Data="M 1 10 Q 5.5 3 10 10" 
                                                   Stroke="#00F2FE" 
-                                                  StrokeThickness="2.8" 
+                                                  StrokeThickness="2.6" 
                                                   StrokeStartLineCap="Round" 
                                                   StrokeEndLineCap="Round" 
                                                   Visibility="Collapsed">
                                                 <Path.Effect>
-                                                    <DropShadowEffect Color="#00F2FE" BlurRadius="8" ShadowDepth="0" Opacity="0.95"/>
+                                                    <DropShadowEffect Color="#00F2FE" BlurRadius="7" ShadowDepth="0" Opacity="0.95"/>
                                                 </Path.Effect>
                                             </Path>
 
                                             <!-- Sleeping Flat Eye -->
                                             <Rectangle x:Name="LeftEyeSleeping" 
-                                                       Width="9.5" Height="3" 
-                                                       RadiusX="1.5" RadiusY="1.5" 
+                                                       Width="8.5" Height="2.5" 
+                                                       RadiusX="1.25" RadiusY="1.25" 
                                                        Fill="#0284C7" 
                                                        Visibility="Collapsed"/>
                                         </Grid>
 
-                                        <!-- Right Eye (Big & Noticeable) -->
-                                        <Grid Width="13" Height="17" Margin="3.5,0,0,0">
+                                        <!-- Right Eye -->
+                                        <Grid Width="11" Height="15" Margin="3,0,0,0">
                                             <Grid.RenderTransform>
                                                 <TransformGroup>
-                                                    <ScaleTransform x:Name="RightEyeScale" ScaleX="1.0" ScaleY="1.0" CenterX="6.5" CenterY="8.5"/>
-                                                    <RotateTransform x:Name="RightEyeRotate" Angle="0" CenterX="6.5" CenterY="8.5"/>
+                                                    <ScaleTransform x:Name="RightEyeScale" ScaleX="1.0" ScaleY="1.0" CenterX="5.5" CenterY="7.5"/>
+                                                    <RotateTransform x:Name="RightEyeRotate" Angle="0" CenterX="5.5" CenterY="7.5"/>
                                                 </TransformGroup>
                                             </Grid.RenderTransform>
 
-                                            <!-- Normal Open Eye (Luminous Cyan Neon) -->
+                                            <!-- Normal Open Eye -->
                                             <Border x:Name="RightEyeNormal" 
-                                                    Width="9.5" Height="13.5" 
-                                                    CornerRadius="4.75" 
+                                                    Width="8.5" Height="12" 
+                                                    CornerRadius="4.25" 
                                                     Background="#00F2FE">
                                                 <Border.Effect>
-                                                    <DropShadowEffect Color="#00F2FE" BlurRadius="8" ShadowDepth="0" Opacity="0.95"/>
+                                                    <DropShadowEffect Color="#00F2FE" BlurRadius="7" ShadowDepth="0" Opacity="0.95"/>
                                                 </Border.Effect>
                                             </Border>
 
                                             <!-- Happy Arc Eye (Chevrons) -->
                                             <Path x:Name="RightEyeHappy" 
-                                                  Data="M 1 11 Q 6.5 3 12 11" 
+                                                  Data="M 1 10 Q 5.5 3 10 10" 
                                                   Stroke="#00F2FE" 
-                                                  StrokeThickness="2.8" 
+                                                  StrokeThickness="2.6" 
                                                   StrokeStartLineCap="Round" 
                                                   StrokeEndLineCap="Round" 
                                                   Visibility="Collapsed">
                                                 <Path.Effect>
-                                                    <DropShadowEffect Color="#00F2FE" BlurRadius="8" ShadowDepth="0" Opacity="0.95"/>
+                                                    <DropShadowEffect Color="#00F2FE" BlurRadius="7" ShadowDepth="0" Opacity="0.95"/>
                                                 </Path.Effect>
                                             </Path>
 
                                             <!-- Sleeping Flat Eye -->
                                             <Rectangle x:Name="RightEyeSleeping" 
-                                                       Width="9.5" Height="3" 
-                                                       RadiusX="1.5" RadiusY="1.5" 
+                                                       Width="8.5" Height="2.5" 
+                                                       RadiusX="1.25" RadiusY="1.25" 
                                                        Fill="#0284C7" 
                                                        Visibility="Collapsed"/>
                                         </Grid>
@@ -214,4 +379,3 @@
         </Viewbox>
     </Grid>
 </UserControl>
-

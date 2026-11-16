@@ -92,6 +92,7 @@ public sealed class RobotController : IDisposable
             companion.Settings.ReducedMotion = Settings.ReducedMotion;
             companion.Settings.BatterySaver = Settings.BatterySaver;
             companion.Settings.FollowCursor = Settings.FollowCursor;
+            companion.Settings.ScreenRoaming = Settings.ScreenRoaming;
             AppLogger.Debug("RobotCompanion registered with controller.");
         }
     }

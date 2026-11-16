@@ -10,6 +10,7 @@ public sealed class RobotSettings
     private bool _reducedMotion = false;
     private bool _batterySaver = false;
     private bool _followCursor = true;
+    private bool _screenRoaming = true;
 
     public bool IsEnabled
     {
@@ -88,6 +89,24 @@ public sealed class RobotSettings
             }
         }
     }
+
+    public bool ScreenRoaming
+    {
+        get => _screenRoaming;
+        set
+        {
+            if (_screenRoaming != value)
+            {
+                _screenRoaming = value;
+                OnSettingsChanged();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Whether screen roaming (wandering and walking across screen) is allowed.
+    /// </summary>
+    public bool ShouldRoam => IsEnabled && ScreenRoaming && !ReducedMotion && !BatterySaver;
 
     /// <summary>
     /// Whether idle floating animations are allowed based on motion and power settings.

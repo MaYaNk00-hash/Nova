@@ -204,6 +204,9 @@
             <MenuItem Header="Expand / HUD Dashboard" Click="MenuExpand_Click" FontWeight="SemiBold"/>
             <MenuItem Header="Compact Pill" Click="MenuCompact_Click"/>
             <MenuItem Header="Minimize to Circle Bubble" Click="MenuCircle_Click"/>
+            <MenuItem x:Name="MenuScreenRoamingRoot" Header="🚶 Screen Roaming (Walk &amp; Explore)" IsCheckable="True" IsChecked="True" Click="MenuScreenRoaming_Click"/>
+            <MenuItem Header="✨ Walk on Screen Now" Click="MenuWalkNow_Click"/>
+            <MenuItem Header="⬆️ Return to Top Notch" Click="MenuReturnToNotch_Click"/>
             <MenuItem Header="Reset Position (Top Center)" Click="MenuResetPosition_Click"/>
             <MenuItem x:Name="MenuAlwaysOnTop" Header="Always On Top" IsCheckable="True" IsChecked="True" Click="MenuAlwaysOnTop_Click"/>
             <MenuItem x:Name="MenuFollowCursorRoot" Header="👀 Eye Tracking (Follow Cursor)" IsCheckable="True" IsChecked="True" Click="MenuFollowCursor_Click"/>
@@ -220,6 +223,7 @@
             <Separator/>
             <MenuItem Header="Robot Companion">
                 <MenuItem x:Name="MenuFollowCursor" Header="👀 Eye Tracking (Follow Cursor)" IsCheckable="True" IsChecked="True" Click="MenuFollowCursor_Click"/>
+                <MenuItem x:Name="MenuScreenRoaming" Header="🚶 Screen Roaming (Walk &amp; Explore)" IsCheckable="True" IsChecked="True" Click="MenuScreenRoaming_Click"/>
                 <Separator/>
                 <MenuItem Header="Test: ✨ Excited" Click="MenuTestExcited_Click"/>
                 <MenuItem Header="Test: ❓ Confused" Click="MenuTestConfused_Click"/>
@@ -239,6 +243,29 @@
     </Window.Resources>
 
     <Grid HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,10">
+        <!-- Roaming Speech / Greeting Bubble (Pop-up when waving hi or smiling) -->
+        <Border x:Name="RoamingGreetingBubble"
+                Background="#0F172A"
+                BorderBrush="#38BDF8"
+                BorderThickness="1.2"
+                CornerRadius="10"
+                Padding="8,3"
+                Opacity="0"
+                Visibility="Collapsed"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Top"
+                Margin="0,2,0,0"
+                IsHitTestVisible="False">
+            <Border.Effect>
+                <DropShadowEffect Color="#00F2FE" BlurRadius="8" ShadowDepth="1" Opacity="0.6"/>
+            </Border.Effect>
+            <TextBlock x:Name="RoamingGreetingText"
+                       Text="👋 Hi!"
+                       FontSize="11"
+                       FontWeight="Bold"
+                       Foreground="#FFFFFF"/>
+        </Border>
+
         <!-- Main Island Pill Border with Obsidian Gloss & Cybernetic Specular Rim (Height increased by 15%, docked firmly to top) -->
         <Border x:Name="PillBorder"
                 Width="156"
@@ -315,9 +342,10 @@
                         </Ellipse.RenderTransform>
                     </Ellipse>
 
-                    <!-- Mini Robot Mascot (Noticeable 32px) -->
+                    <!-- Mini Robot Mascot (Full Body Roaming Mascot) -->
                     <robot:RobotCompanion x:Name="CircleRobot" 
-                                          CompanionSize="32" 
+                                          CompanionSize="40" 
+                                          ShowBody="True"
                                           HorizontalAlignment="Center" 
                                           VerticalAlignment="Center" 
                                           IsHitTestVisible="False"/>
@@ -355,6 +383,7 @@
                     <robot:RobotCompanion x:Name="CompactRobot" 
                                           Grid.Row="0"
                                           CompanionSize="38" 
+                                          ShowBody="False"
                                           HorizontalAlignment="Center" 
                                           VerticalAlignment="Center"/>
 

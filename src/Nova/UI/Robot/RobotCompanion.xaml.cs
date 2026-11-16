@@ -12,10 +12,42 @@ public partial class RobotCompanion : UserControl
     public static readonly DependencyProperty CompanionSizeProperty =
         DependencyProperty.Register(nameof(CompanionSize), typeof(double), typeof(RobotCompanion), new PropertyMetadata(32.0));
 
+    public static readonly DependencyProperty ShowBodyProperty =
+        DependencyProperty.Register(nameof(ShowBody), typeof(bool), typeof(RobotCompanion), new PropertyMetadata(true, OnShowBodyChanged));
+
     public double CompanionSize
     {
         get => (double)GetValue(CompanionSizeProperty);
         set => SetValue(CompanionSizeProperty, value);
+    }
+
+    public bool ShowBody
+    {
+        get => (bool)GetValue(ShowBodyProperty);
+        set => SetValue(ShowBodyProperty, value);
+    }
+
+    private static void OnShowBodyChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        if (d is RobotCompanion robot)
+        {
+            robot.UpdateBodyVisibility();
+        }
+    }
+
+    public void UpdateBodyVisibility()
+    {
+        var vis = ShowBody ? Visibility.Visible : Visibility.Collapsed;
+        if (TorsoContainer != null) TorsoContainer.Visibility = vis;
+        if (LeftArmContainer != null) LeftArmContainer.Visibility = vis;
+        if (RightArmContainer != null) RightArmContainer.Visibility = vis;
+        if (LeftLegContainer != null) LeftLegContainer.Visibility = vis;
+        if (RightLegContainer != null) RightLegContainer.Visibility = vis;
+
+        if (MasterCanvas != null)
+        {
+            MasterCanvas.Height = ShowBody ? 78 : 44;
+        }
     }
 
     private readonly DispatcherTimer _blinkTimer;
@@ -41,6 +73,7 @@ public partial class RobotCompanion : UserControl
 
     private void RobotCompanion_Loaded(object sender, RoutedEventArgs e)
     {
+        UpdateBodyVisibility();
         ApplySettings();
         if (CurrentState != RobotState.Sleeping)
         {
@@ -406,5 +439,198 @@ public partial class RobotCompanion : UserControl
             }
         };
         timer.Start();
+    }
+
+    // --- FULL BODY MOVEMENTS & ANIMATIONS ---
+
+    /// <summary>
+    /// Starts walking stride: alternating legs stepping and arms swinging with head bobbing.
+    /// </summary>
+    public void StartWalking(double durationSec = 2.0)
+    {
+        if (Settings.ReducedMotion || CurrentState == RobotState.Sleeping) return;
+
+        // Alternating leg strides
+        var legStep1 = new DoubleAnimation(-22.0, 22.0, TimeSpan.FromMilliseconds(220))
+        {
+            AutoReverse = true,
+            RepeatBehavior = RepeatBehavior.Forever,
+            EasingFunction = new SineEase { EasingMode = EasingMode.EaseInOut }
+        };
+        var legStep2 = new DoubleAnimation(22.0, -22.0, TimeSpan.FromMilliseconds(220))
+        {
+            AutoReverse = true,
+            RepeatBehavior = RepeatBehavior.Forever,
+            EasingFunction = new SineEase { EasingMode = EasingMode.EaseInOut }
+        };
+        LeftLegRotate.BeginAnimation(RotateTransform.AngleProperty, legStep1);
+        RightLegRotate.BeginAnimation(RotateTransform.AngleProperty, legStep2);
+
+        // Natural arm counter-swing
+        var armSwing1 = new DoubleAnimation(20.0, -15.0, TimeSpan.FromMilliseconds(220))
+        {
+            AutoReverse = true,
+            RepeatBehavior = RepeatBehavior.Forever,
+            EasingFunction = new SineEase { EasingMode = EasingMode.EaseInOut }
+        };
+        var armSwing2 = new DoubleAnimation(-20.0, 15.0, TimeSpan.FromMilliseconds(220))
+        {
+            AutoReverse = true,
+            RepeatBehavior = RepeatBehavior.Forever,
+            EasingFunction = new SineEase { EasingMode = EasingMode.EaseInOut }
+        };
+        LeftArmRotate.BeginAnimation(RotateTransform.AngleProperty, armSwing1);
+        RightArmRotate.BeginAnimation(RotateTransform.AngleProperty, armSwing2);
+
+        // Walking head/body bob
+        var walkBob = new DoubleAnimation(0.0, -2.5, TimeSpan.FromMilliseconds(110))
+        {
+            AutoReverse = true,
+            RepeatBehavior = RepeatBehavior.Forever,
+            EasingFunction = new SineEase { EasingMode = EasingMode.EaseInOut }
+        };
+        HeadFloatTransform.BeginAnimation(TranslateTransform.YProperty, walkBob);
+    }
+
+    /// <summary>
+    /// Stops walking stride and eases body back into neutral standing/floating posture.
+    /// </summary>
+    public void StopWalking()
+    {
+        LeftLegRotate.BeginAnimation(RotateTransform.AngleProperty, null);
+        RightLegRotate.BeginAnimation(RotateTransform.AngleProperty, null);
+        LeftArmRotate.BeginAnimation(RotateTransform.AngleProperty, null);
+        RightArmRotate.BeginAnimation(RotateTransform.AngleProperty, null);
+
+        var easeOut = new CubicEase { EasingMode = EasingMode.EaseOut };
+        var easeLeg = new DoubleAnimation(LeftLegRotate.Angle, 0.0, TimeSpan.FromMilliseconds(180)) { EasingFunction = easeOut };
+        LeftLegRotate.BeginAnimation(RotateTransform.AngleProperty, easeLeg);
+        RightLegRotate.BeginAnimation(RotateTransform.AngleProperty, easeLeg);
+
+        var easeArmL = new DoubleAnimation(LeftArmRotate.Angle, 10.0, TimeSpan.FromMilliseconds(180)) { EasingFunction = easeOut };
+        var easeArmR = new DoubleAnimation(RightArmRotate.Angle, -10.0, TimeSpan.FromMilliseconds(180)) { EasingFunction = easeOut };
+        LeftArmRotate.BeginAnimation(RotateTransform.AngleProperty, easeArmL);
+        RightArmRotate.BeginAnimation(RotateTransform.AngleProperty, easeArmR);
+
+        HeadFloatTransform.BeginAnimation(TranslateTransform.YProperty, null);
+        if (Settings.ShouldFloat && CurrentState != RobotState.Sleeping)
+        {
+            StartFloating();
+        }
+    }
+
+    /// <summary>
+    /// Waves right hand cheerfully with animated arm raise and rapid waving motion.
+    /// </summary>
+    public void StartWaving()
+    {
+        if (Settings.ReducedMotion || CurrentState == RobotState.Sleeping) return;
+
+        var raiseArm = new DoubleAnimation(RightArmRotate.Angle, -130.0, TimeSpan.FromMilliseconds(200))
+        {
+            EasingFunction = new BackEase { EasingMode = EasingMode.EaseOut, Amplitude = 0.4 }
+        };
+
+        raiseArm.Completed += (s, e) =>
+        {
+            var wave = new DoubleAnimation(-115.0, -145.0, TimeSpan.FromMilliseconds(120))
+            {
+                AutoReverse = true,
+                RepeatBehavior = new RepeatBehavior(3),
+                EasingFunction = new SineEase { EasingMode = EasingMode.EaseInOut }
+            };
+
+            wave.Completed += (ws, we) =>
+            {
+                var lowerArm = new DoubleAnimation(RightArmRotate.Angle, -10.0, TimeSpan.FromMilliseconds(240))
+                {
+                    EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+                };
+                RightArmRotate.BeginAnimation(RotateTransform.AngleProperty, lowerArm);
+            };
+
+            RightArmRotate.BeginAnimation(RotateTransform.AngleProperty, wave);
+        };
+
+        RightArmRotate.BeginAnimation(RotateTransform.AngleProperty, raiseArm);
+    }
+
+    /// <summary>
+    /// Folds legs forward into an adorable sitting posture.
+    /// </summary>
+    public void SitDown()
+    {
+        if (Settings.ReducedMotion || CurrentState == RobotState.Sleeping) return;
+
+        var sitAngle = new DoubleAnimation(0.0, -55.0, TimeSpan.FromMilliseconds(260))
+        {
+            EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+        };
+        LeftLegRotate.BeginAnimation(RotateTransform.AngleProperty, sitAngle);
+        RightLegRotate.BeginAnimation(RotateTransform.AngleProperty, sitAngle);
+
+        var sitLift = new DoubleAnimation(0.0, -2.5, TimeSpan.FromMilliseconds(260))
+        {
+            EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+        };
+        LeftLegTranslate.BeginAnimation(TranslateTransform.YProperty, sitLift);
+        RightLegTranslate.BeginAnimation(TranslateTransform.YProperty, sitLift);
+
+        var sitArms = new DoubleAnimation(LeftArmRotate.Angle, 22.0, TimeSpan.FromMilliseconds(260))
+        {
+            EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+        };
+        LeftArmRotate.BeginAnimation(RotateTransform.AngleProperty, sitArms);
+        var sitArmR = new DoubleAnimation(RightArmRotate.Angle, -22.0, TimeSpan.FromMilliseconds(260))
+        {
+            EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+        };
+        RightArmRotate.BeginAnimation(RotateTransform.AngleProperty, sitArmR);
+    }
+
+    /// <summary>
+    /// Restores full standing posture from sitting.
+    /// </summary>
+    public void StandUp()
+    {
+        var easeOut = new CubicEase { EasingMode = EasingMode.EaseOut };
+        var standLeg = new DoubleAnimation(LeftLegRotate.Angle, 0.0, TimeSpan.FromMilliseconds(200)) { EasingFunction = easeOut };
+        LeftLegRotate.BeginAnimation(RotateTransform.AngleProperty, standLeg);
+        RightLegRotate.BeginAnimation(RotateTransform.AngleProperty, standLeg);
+
+        LeftLegTranslate.BeginAnimation(TranslateTransform.YProperty, null);
+        RightLegTranslate.BeginAnimation(TranslateTransform.YProperty, null);
+        LeftLegTranslate.Y = 0;
+        RightLegTranslate.Y = 0;
+
+        var standArmL = new DoubleAnimation(LeftArmRotate.Angle, 10.0, TimeSpan.FromMilliseconds(200)) { EasingFunction = easeOut };
+        var standArmR = new DoubleAnimation(RightArmRotate.Angle, -10.0, TimeSpan.FromMilliseconds(200)) { EasingFunction = easeOut };
+        LeftArmRotate.BeginAnimation(RotateTransform.AngleProperty, standArmL);
+        RightArmRotate.BeginAnimation(RotateTransform.AngleProperty, standArmR);
+    }
+
+    /// <summary>
+    /// Configures flight posture: legs streamlined back and arms tucked back aerodynamically.
+    /// </summary>
+    public void SetFlightPosture(bool isFlying)
+    {
+        if (isFlying)
+        {
+            var flightLeg = new DoubleAnimation(LeftLegRotate.Angle, 30.0, TimeSpan.FromMilliseconds(160))
+            {
+                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+            };
+            LeftLegRotate.BeginAnimation(RotateTransform.AngleProperty, flightLeg);
+            RightLegRotate.BeginAnimation(RotateTransform.AngleProperty, flightLeg);
+
+            var flightArmL = new DoubleAnimation(LeftArmRotate.Angle, 40.0, TimeSpan.FromMilliseconds(160));
+            var flightArmR = new DoubleAnimation(RightArmRotate.Angle, -40.0, TimeSpan.FromMilliseconds(160));
+            LeftArmRotate.BeginAnimation(RotateTransform.AngleProperty, flightArmL);
+            RightArmRotate.BeginAnimation(RotateTransform.AngleProperty, flightArmR);
+        }
+        else
+        {
+            StandUp();
+        }
     }
 }

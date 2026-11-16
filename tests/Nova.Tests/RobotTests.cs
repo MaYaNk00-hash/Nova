@@ -1,3 +1,8 @@
+using System.IO;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using Nova.UI;
 using Nova.UI.Robot;
 
@@ -268,6 +273,190 @@ public class RobotTests
         {
             throw new InvalidOperationException($"STA thread failed: {threadException.Message}", threadException);
         }
+    }
+
+    [Fact("Verify RobotSettings ScreenRoaming toggle and ShouldRoam conditions")]
+    public static void RobotSettings_ScreenRoaming_TogglesAndChecksShouldRoam()
+    {
+        var settings = new RobotSettings();
+        Assert.True(settings.ScreenRoaming, "ScreenRoaming should default to true.");
+        Assert.True(settings.ShouldRoam, "ShouldRoam should be true by default.");
+
+        settings.ScreenRoaming = false;
+        Assert.False(settings.ScreenRoaming);
+        Assert.False(settings.ShouldRoam);
+
+        settings.ScreenRoaming = true;
+        settings.ReducedMotion = true;
+        Assert.False(settings.ShouldRoam, "Reduced motion must suppress roaming.");
+
+        settings.ReducedMotion = false;
+        settings.BatterySaver = true;
+        Assert.False(settings.ShouldRoam, "Battery saver must suppress roaming.");
+    }
+
+    [Fact("Verify IslandWindow ScreenRoaming lifecycle: StartRoaming, WaveHi, and FlyToNotch")]
+    public static void IslandWindow_ScreenRoaming_StartAndFlyToNotchLifecycle()
+    {
+        Exception? threadException = null;
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                var window = new Nova.UI.IslandWindow();
+                Assert.False(window.IsRoaming);
+                Assert.Equal(Nova.UI.IslandState.Compact, window.CurrentState);
+
+                // Start roaming
+                window.StartRoaming();
+                Assert.True(window.IsRoaming, "IsRoaming should be true after StartRoaming.");
+                Assert.Equal(Nova.UI.IslandState.Circle, window.CurrentState);
+
+                // Wave Hi
+                window.PerformWaveHi();
+                Assert.Equal(System.Windows.Visibility.Visible, window.RoamingGreetingBubble.Visibility);
+
+                // Smile
+                window.PerformSmile();
+
+                // Sit
+                window.PerformSit();
+
+                // Fly to notch
+                window.FlyToNotch(immediate: true);
+                Assert.False(window.IsRoaming, "IsRoaming should be false after FlyToNotch.");
+                Assert.Equal(Nova.UI.IslandState.Compact, window.CurrentState);
+
+                window.Close();
+            }
+            catch (Exception ex)
+            {
+                threadException = ex;
+            }
+        });
+
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        thread.Join(5000);
+
+        if (threadException != null)
+        {
+            throw new InvalidOperationException($"STA thread failed: {threadException.Message}", threadException);
+        }
+    }
+
+    [Fact("Verify RobotCompanion full body anatomy, ShowBody toggling, and limb animations")]
+    public static void RobotCompanion_FullBodyAnatomyAndAnimations()
+    {
+        Exception? threadException = null;
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                var robot = new RobotCompanion();
+
+                // 1. Verify full-body anatomy elements are initialized
+                Assert.NotNull(robot.LeftLegContainer);
+                Assert.NotNull(robot.RightLegContainer);
+                Assert.NotNull(robot.TorsoContainer);
+                Assert.NotNull(robot.LeftArmContainer);
+                Assert.NotNull(robot.RightArmContainer);
+                Assert.NotNull(robot.ChestCoreLed);
+                Assert.NotNull(robot.MasterCanvas);
+
+                // 2. Default ShowBody is true -> Height is 78
+                Assert.True(robot.ShowBody);
+                robot.UpdateBodyVisibility();
+                Assert.Equal(System.Windows.Visibility.Visible, robot.TorsoContainer.Visibility);
+                Assert.Equal(System.Windows.Visibility.Visible, robot.LeftLegContainer.Visibility);
+                Assert.Equal(78.0, robot.MasterCanvas.Height);
+
+                // 3. Toggle ShowBody false (for minimalist notch mode) -> Height is 44
+                robot.ShowBody = false;
+                Assert.Equal(System.Windows.Visibility.Collapsed, robot.TorsoContainer.Visibility);
+                Assert.Equal(System.Windows.Visibility.Collapsed, robot.LeftLegContainer.Visibility);
+                Assert.Equal(44.0, robot.MasterCanvas.Height);
+
+                // 4. Restore ShowBody true
+                robot.ShowBody = true;
+                Assert.Equal(System.Windows.Visibility.Visible, robot.TorsoContainer.Visibility);
+                Assert.Equal(78.0, robot.MasterCanvas.Height);
+
+                // 5. Verify limb animations execute smoothly
+                robot.StartWalking(1.5);
+                robot.StopWalking();
+
+                robot.StartWaving();
+
+                robot.SitDown();
+                robot.StandUp();
+
+                robot.SetFlightPosture(true);
+                robot.SetFlightPosture(false);
+
+                // 6. Export high-fidelity visual snapshots to brain artifact directory
+                string artDir = @"C:\Users\mayan\.gemini\antigravity\brain\94fdf842-1673-419b-90de-037bc4a99bea";
+                if (Directory.Exists(artDir))
+                {
+                    RenderAndSaveRobot(true, 0, 0, 10, -10, Path.Combine(artDir, "nova_full_body_standing.png"));
+                    RenderAndSaveRobot(true, 0, 0, 10, -130, Path.Combine(artDir, "nova_full_body_waving.png"));
+                    RenderAndSaveRobot(true, -55, -2.5, 22, -22, Path.Combine(artDir, "nova_full_body_sitting.png"));
+                    RenderAndSaveRobot(false, 0, 0, 0, 0, Path.Combine(artDir, "nova_compact_notch_head.png"));
+                }
+            }
+            catch (Exception ex)
+            {
+                threadException = ex;
+            }
+        });
+
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        thread.Join(5000);
+
+        if (threadException != null)
+        {
+            throw new InvalidOperationException($"STA thread failed: {threadException.Message}", threadException);
+        }
+    }
+
+    private static void RenderAndSaveRobot(bool showBody, double legAngle, double legY, double armL, double armR, string outputPath)
+    {
+        var robot = new RobotCompanion();
+        robot.ShowBody = showBody;
+        robot.UpdateBodyVisibility();
+        robot.LeftLegRotate.Angle = legAngle;
+        robot.RightLegRotate.Angle = legAngle;
+        robot.LeftLegTranslate.Y = legY;
+        robot.RightLegTranslate.Y = legY;
+        robot.LeftArmRotate.Angle = armL;
+        robot.RightArmRotate.Angle = armR;
+
+        double size = showBody ? 96.0 : 64.0;
+        robot.CompanionSize = size;
+
+        var container = new Border
+        {
+            Width = 140,
+            Height = 140,
+            Background = new SolidColorBrush(Color.FromArgb(0xEE, 11, 19, 43)),
+            CornerRadius = new CornerRadius(16),
+            BorderBrush = new SolidColorBrush(Color.FromArgb(0x60, 0, 242, 254)),
+            BorderThickness = new Thickness(1.2),
+            Child = robot
+        };
+
+        container.Measure(new Size(140, 140));
+        container.Arrange(new Rect(0, 0, 140, 140));
+        container.UpdateLayout();
+
+        var rtb = new RenderTargetBitmap(140, 140, 96, 96, PixelFormats.Pbgra32);
+        rtb.Render(container);
+
+        var encoder = new PngBitmapEncoder();
+        encoder.Frames.Add(BitmapFrame.Create(rtb));
+        using var stream = File.Create(outputPath);
+        encoder.Save(stream);
     }
 }
 

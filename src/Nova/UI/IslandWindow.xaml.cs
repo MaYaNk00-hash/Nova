@@ -58,6 +58,11 @@ public partial class IslandWindow : Window
     private bool _isScrubbingTimeline = false;
     private DateTime _lastSeekUtc = DateTime.MinValue;
 
+    private readonly DispatcherTimer _roamDepartureTimer;
+    private readonly DispatcherTimer _roamActionTimer;
+    private readonly Random _random = new();
+    private bool _isRoaming = false;
+
     private List<TodoItem> _todos = new();
     private string _todoFilter = "All";
     private TimeSpan _focusRemaining = TimeSpan.FromMinutes(25);
@@ -72,7 +77,9 @@ public partial class IslandWindow : Window
     public PillTransparencyMode TransparencyMode { get; private set; } = PillTransparencyMode.TranslucentGlass;
     public bool IsAlwaysOnTop => Topmost;
     public bool IsManuallyPositioned => _isManuallyPositioned;
+    public bool IsRoaming => _isRoaming;
     public RobotController RobotController => _robotController;
+    public RobotSettings RobotSettings => _robotController.Settings;
     public EventEngine EventEngine => _eventEngine;
     public IMediaService MediaService => _mediaService;
     public INotificationService NotificationService => _notificationService;
@@ -117,6 +124,19 @@ public partial class IslandWindow : Window
             Interval = TimeSpan.FromSeconds(1)
         };
         _focusTimer.Tick += FocusTimer_Tick;
+
+        // Screen roaming timers
+        _roamDepartureTimer = new DispatcherTimer
+        {
+            Interval = TimeSpan.FromSeconds(7)
+        };
+        _roamDepartureTimer.Tick += RoamDepartureTimer_Tick;
+
+        _roamActionTimer = new DispatcherTimer
+        {
+            Interval = TimeSpan.FromSeconds(4)
+        };
+        _roamActionTimer.Tick += RoamActionTimer_Tick;
 
         ApplyPillStyleForState(CurrentState);
 
@@ -164,6 +184,7 @@ public partial class IslandWindow : Window
         ResetToTopCenter(animate: false);
         ApplyPillStyleForState(CurrentState);
         SyncTransparencyMenuChecks(TransparencyMode);
+        SyncScreenRoamingMenuChecks(RobotSettings.ScreenRoaming);
 
         try
         {
@@ -184,6 +205,7 @@ public partial class IslandWindow : Window
         UpdateCalendar();
         UpdateSystemMonitor();
         _clockTimer.Start();
+        ScheduleRoamDeparture();
 
         // Initialize media session monitoring
         try
@@ -267,6 +289,10 @@ public partial class IslandWindow : Window
                 if (e.EventType == "media.track_changed" || (e.EventType == "media.playback_changed" && snap.IsPlaying))
                 {
                     _robotController.TriggerNodTestEvent();
+                    if (_isRoaming)
+                    {
+                        FlyToNotch();
+                    }
                 }
             }
         }));
@@ -576,6 +602,8 @@ public partial class IslandWindow : Window
         else if (targetState == IslandState.Compact)
         {
             StopCirclePulse();
+            _roamActionTimer.Stop();
+            ScheduleRoamDeparture();
             bool hasMedia = _lastMediaSnapshot?.HasActiveSession == true;
             targetPillWidth = hasMedia ? IslandDimensions.CompactMediaWidth : IslandDimensions.CompactWidth;
             targetPillHeight = hasMedia ? IslandDimensions.CompactMediaHeight : IslandDimensions.CompactHeight;
@@ -588,7 +616,7 @@ public partial class IslandWindow : Window
             double targetWinWidth = hasMedia ? IslandDimensions.CompactMediaWindowWidth : IslandDimensions.CompactWindowWidth;
             double targetWinHeight = hasMedia ? IslandDimensions.CompactMediaWindowHeight : IslandDimensions.CompactWindowHeight;
 
-            if (previousState == IslandState.Circle || hasMedia)
+            if ((previousState == IslandState.Circle && !_isRoaming) || hasMedia)
             {
                 // Expanding to Compact or showing media: adjust window bounds immediately
                 SetWindowDimensionsAndCenter(targetWinWidth, targetWinHeight);
@@ -611,6 +639,9 @@ public partial class IslandWindow : Window
         else // Expanded
         {
             StopCirclePulse();
+            _roamActionTimer.Stop();
+            _roamDepartureTimer.Stop();
+            _isRoaming = false;
             targetPillWidth = IslandDimensions.ExpandedWidth;
             targetPillHeight = _currentSlide == SlideView.Hud ? IslandDimensions.ExpandedHeight : IslandDimensions.ExpandedWorkspaceHeight;
             targetCornerRadius = new CornerRadius(0, 0, IslandDimensions.ExpandedCornerRadius, IslandDimensions.ExpandedCornerRadius);
@@ -666,7 +697,15 @@ public partial class IslandWindow : Window
         {
             if (targetState == IslandState.Circle)
             {
-                SetWindowDimensionsAndCenter(IslandDimensions.CircleWindowWidth, IslandDimensions.CircleWindowHeight);
+                if (!_isRoaming)
+                {
+                    SetWindowDimensionsAndCenter(IslandDimensions.CircleWindowWidth, IslandDimensions.CircleWindowHeight);
+                }
+                else
+                {
+                    Width = IslandDimensions.CircleWindowWidth;
+                    Height = IslandDimensions.CircleWindowHeight;
+                }
             }
             else if (targetState == IslandState.Compact)
             {
@@ -804,9 +843,16 @@ public partial class IslandWindow : Window
             return;
         }
 
+        if (_isRoaming)
+        {
+            FlyToNotch();
+            e.Handled = true;
+            return;
+        }
+
         if (CurrentState == IslandState.Circle)
         {
-            TransitionTo(IslandState.Compact);
+            FlyToNotch();
             e.Handled = true;
             return;
         }
@@ -1160,6 +1206,7 @@ public partial class IslandWindow : Window
 
     private void PillBorder_MouseEnter(object sender, MouseEventArgs e)
     {
+        _roamDepartureTimer.Stop();
         if (CurrentState == IslandState.Compact || CurrentState == IslandState.Circle)
         {
             double targetScale = CurrentState == IslandState.Circle ? 1.08 : 1.03;
@@ -1181,6 +1228,10 @@ public partial class IslandWindow : Window
 
     private void PillBorder_MouseLeave(object sender, MouseEventArgs e)
     {
+        if (CurrentState == IslandState.Compact && !_isRoaming)
+        {
+            ScheduleRoamDeparture();
+        }
         if (CurrentState == IslandState.Compact || CurrentState == IslandState.Circle)
         {
             var animScale = new DoubleAnimation(PillScaleTransform.ScaleX, 1.0, TimeSpan.FromMilliseconds(200))
@@ -1572,6 +1623,7 @@ public partial class IslandWindow : Window
 
         if (state == IslandState.Circle)
         {
+            PillBorder.Margin = new Thickness(0, 32, 0, 0);
             if (TransparencyMode == PillTransparencyMode.UltraClear)
             {
                 PillBorder.Background = new SolidColorBrush(Color.FromArgb(0x04, 0, 0, 0));
@@ -1628,6 +1680,7 @@ public partial class IslandWindow : Window
         }
         else if (state == IslandState.Compact)
         {
+            PillBorder.Margin = new Thickness(0, 0, 0, 0);
             if (TransparencyMode == PillTransparencyMode.UltraClear)
             {
                 PillBorder.Background = new SolidColorBrush(Color.FromArgb(0x06, 0, 0, 0));
@@ -1707,6 +1760,7 @@ public partial class IslandWindow : Window
         }
         else // Expanded
         {
+            PillBorder.Margin = new Thickness(0, 0, 0, 0);
             PillBorder.Background = new LinearGradientBrush(
                 new GradientStopCollection
                 {
@@ -1833,6 +1887,385 @@ public partial class IslandWindow : Window
             if (BtnToggleEyeTracking != null)
             {
                 BtnToggleEyeTracking.Content = isChecked ? "👀 Eye Tracking: ON" : "👀 Eye Tracking: OFF";
+            }
+        }
+        catch { }
+    }
+
+    // =========================================================================
+    // SCREEN ROAMING (WANDER, WALK, WAVE, SMILE, SIT & FLY TO NOTCH)
+    // =========================================================================
+
+    public void ScheduleRoamDeparture()
+    {
+        _roamDepartureTimer.Stop();
+        if (!_robotController.Settings.ShouldRoam) return;
+        if (CurrentState != IslandState.Compact) return;
+        if (_lastMediaSnapshot?.HasActiveSession == true && _lastMediaSnapshot.IsPlaying) return;
+        if (_isPinned || _isTransitioning) return;
+
+        _roamDepartureTimer.Interval = TimeSpan.FromSeconds(7);
+        _roamDepartureTimer.Start();
+    }
+
+    private void RoamDepartureTimer_Tick(object? sender, EventArgs e)
+    {
+        _roamDepartureTimer.Stop();
+
+        if (!_robotController.Settings.ShouldRoam) return;
+        if (CurrentState != IslandState.Compact) return;
+        if (_lastMediaSnapshot?.HasActiveSession == true && _lastMediaSnapshot.IsPlaying) return;
+        if (_isPinned || _isTransitioning) return;
+        if (PillBorder.IsMouseOver)
+        {
+            ScheduleRoamDeparture();
+            return;
+        }
+
+        StartRoaming();
+    }
+
+    public void StartRoaming()
+    {
+        if (_isRoaming) return;
+        if (!_robotController.Settings.ShouldRoam) return;
+
+        _isRoaming = true;
+        _roamDepartureTimer.Stop();
+
+        // 1. Transition to single circle companion bubble
+        TransitionTo(IslandState.Circle);
+
+        // 2. Play cheerful take-off nod
+        _robotController.TriggerNodTestEvent();
+
+        // 3. Smooth takeoff glide down into the upper-middle screen
+        var workArea = ScreenHelper.GetWorkingArea(this);
+        double startLeft = Left;
+        double startTop = Top;
+        double destTop = workArea.Top + 130.0;
+        double destLeft = startLeft + (_random.NextDouble() > 0.5 ? 80.0 : -80.0);
+
+        var duration = TimeSpan.FromMilliseconds(450);
+        var ease = new CubicEase { EasingMode = EasingMode.EaseOut };
+
+        var animTop = new DoubleAnimation(startTop, destTop, duration) { EasingFunction = ease };
+        var animLeft = new DoubleAnimation(startLeft, destLeft, duration) { EasingFunction = ease };
+
+        animTop.Completed += (s, e) =>
+        {
+            BeginAnimation(LeftProperty, null);
+            BeginAnimation(TopProperty, null);
+            Left = destLeft;
+            Top = destTop;
+
+            // Start roaming action cycle (walking, waving, smiling, sitting)
+            _roamActionTimer.Interval = TimeSpan.FromSeconds(2.0);
+            _roamActionTimer.Start();
+        };
+
+        BeginAnimation(LeftProperty, animLeft);
+        BeginAnimation(TopProperty, animTop);
+        AppLogger.Info($"NOVA started screen roaming. Initial dest: ({destLeft:F0}, {destTop:F0}).");
+    }
+
+    private void RoamActionTimer_Tick(object? sender, EventArgs e)
+    {
+        if (!_isRoaming || CurrentState != IslandState.Circle)
+        {
+            _roamActionTimer.Stop();
+            return;
+        }
+
+        // Random action selector:
+        // 0-45%: Walk to new coordinate
+        // 46-68%: Wave hi
+        // 69-82%: Smile happily
+        // 83-100%: Sit / rest
+        int roll = _random.Next(100);
+
+        if (roll < 46)
+        {
+            WalkToRandomCoordinate();
+            _roamActionTimer.Interval = TimeSpan.FromSeconds(_random.Next(5, 9));
+        }
+        else if (roll < 69)
+        {
+            PerformWaveHi();
+            _roamActionTimer.Interval = TimeSpan.FromSeconds(_random.Next(4, 7));
+        }
+        else if (roll < 83)
+        {
+            PerformSmile();
+            _roamActionTimer.Interval = TimeSpan.FromSeconds(_random.Next(3, 6));
+        }
+        else
+        {
+            PerformSit();
+            _roamActionTimer.Interval = TimeSpan.FromSeconds(_random.Next(6, 11));
+        }
+    }
+
+    public void WalkToRandomCoordinate()
+    {
+        if (!_isRoaming || CurrentState != IslandState.Circle) return;
+
+        var workArea = ScreenHelper.GetWorkingArea(this);
+        double paddingX = 60.0;
+        double paddingY = 60.0;
+
+        double minX = workArea.Left + paddingX;
+        double maxX = Math.Max(minX, workArea.Right - Width - paddingX);
+        double minY = workArea.Top + paddingY + 30.0;
+        double maxY = Math.Max(minY, workArea.Bottom - Height - paddingY - 40.0);
+
+        double targetX = minX + _random.NextDouble() * (maxX - minX);
+        double targetY = minY + _random.NextDouble() * (maxY - minY);
+
+        double deltaX = targetX - Left;
+        double deltaY = targetY - Top;
+        double distance = Math.Sqrt(deltaX * deltaX + deltaY * deltaY);
+
+        if (distance < 50.0) return;
+
+        double durationSec = Math.Clamp(distance / 320.0, 1.8, 4.0);
+        var duration = TimeSpan.FromSeconds(durationSec);
+        var ease = new SineEase { EasingMode = EasingMode.EaseInOut };
+
+        // Full body walking stride with alternating leg steps and arm swings while traveling
+        if (CircleRobot != null)
+        {
+            CircleRobot.StandUp();
+            CircleRobot.StartWalking(durationSec);
+        }
+
+        var animLeft = new DoubleAnimation(Left, targetX, duration) { EasingFunction = ease };
+        var animTop = new DoubleAnimation(Top, targetY, duration) { EasingFunction = ease };
+
+        animLeft.Completed += (s, e) =>
+        {
+            Left = targetX;
+            Top = targetY;
+            BeginAnimation(LeftProperty, null);
+            BeginAnimation(TopProperty, null);
+            if (CircleRobot != null)
+            {
+                CircleRobot.StopWalking();
+            }
+        };
+
+        BeginAnimation(LeftProperty, animLeft);
+        BeginAnimation(TopProperty, animTop);
+        AppLogger.Debug($"NOVA walking to: ({targetX:F0}, {targetY:F0}) over {durationSec:F1}s.");
+    }
+
+    public void PerformWaveHi()
+    {
+        if (!_isRoaming || CurrentState != IslandState.Circle) return;
+
+        if (CircleRobot != null)
+        {
+            CircleRobot.StandUp();
+            CircleRobot.StartWaving();
+        }
+        _robotController.TriggerExcitedTestEvent();
+
+        string[] greetings = new[] { "👋 Hi!", "✨ Hello!", "😊 *waves*", "🤖 Nova!", "💙 Hey there!" };
+        string greeting = greetings[_random.Next(greetings.Length)];
+
+        ShowRoamingGreeting(greeting);
+    }
+
+    public void PerformSmile()
+    {
+        if (!_isRoaming || CurrentState != IslandState.Circle) return;
+
+        if (CircleRobot != null)
+        {
+            CircleRobot.StandUp();
+            CircleRobot.SetExpression(RobotExpression.Happy);
+            CircleRobot.TriggerExcited();
+        }
+    }
+
+    public void PerformSit()
+    {
+        if (!_isRoaming || CurrentState != IslandState.Circle) return;
+
+        if (CircleRobot != null)
+        {
+            CircleRobot.SetExpression(RobotExpression.Normal);
+            CircleRobot.SitDown();
+        }
+    }
+
+    public void ShowRoamingGreeting(string text)
+    {
+        if (RoamingGreetingBubble == null || RoamingGreetingText == null) return;
+
+        RoamingGreetingText.Text = text;
+        RoamingGreetingBubble.Visibility = Visibility.Visible;
+
+        var popAnim = new DoubleAnimation(0.0, 1.0, TimeSpan.FromMilliseconds(200))
+        {
+            EasingFunction = new BackEase { EasingMode = EasingMode.EaseOut, Amplitude = 0.5 }
+        };
+        RoamingGreetingBubble.BeginAnimation(OpacityProperty, popAnim);
+
+        var dismissTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2.0) };
+        dismissTimer.Tick += (s, e) =>
+        {
+            dismissTimer.Stop();
+            var fadeOut = new DoubleAnimation(RoamingGreetingBubble.Opacity, 0.0, TimeSpan.FromMilliseconds(220));
+            fadeOut.Completed += (fs, fe) =>
+            {
+                RoamingGreetingBubble.Visibility = Visibility.Collapsed;
+            };
+            RoamingGreetingBubble.BeginAnimation(OpacityProperty, fadeOut);
+        };
+        dismissTimer.Start();
+    }
+
+    public void FlyToNotch(bool immediate = false)
+    {
+        _isRoaming = false;
+        _roamActionTimer.Stop();
+        _roamDepartureTimer.Stop();
+
+        // Stop any active walking animation
+        BeginAnimation(LeftProperty, null);
+        BeginAnimation(TopProperty, null);
+
+        if (RoamingGreetingBubble != null)
+        {
+            RoamingGreetingBubble.Visibility = Visibility.Collapsed;
+            RoamingGreetingBubble.BeginAnimation(OpacityProperty, null);
+        }
+
+        CircleRobot?.SetFlightPosture(true);
+
+        var workArea = ScreenHelper.GetWorkingArea(this);
+        double targetLeft = workArea.Left + (workArea.Width - IslandDimensions.CompactWindowWidth) / 2.0;
+        double targetTop = workArea.Top + IslandDimensions.TopMargin;
+
+        if (immediate)
+        {
+            Left = targetLeft;
+            Top = targetTop;
+            CircleRobot?.SetFlightPosture(false);
+            TransitionTo(IslandState.Compact);
+            _robotController.TriggerNodTestEvent();
+            ScheduleRoamDeparture();
+            return;
+        }
+
+        double startLeft = Left;
+        double startTop = Top;
+
+        // High-speed flying curve straight to top center
+        var duration = TimeSpan.FromMilliseconds(380);
+        var flightEase = new CubicEase { EasingMode = EasingMode.EaseIn };
+
+        // Aerodynamic flight stretch effect
+        if (PillScaleTransform != null)
+        {
+            var stretchX = new DoubleAnimation(1.0, 0.85, TimeSpan.FromMilliseconds(180)) { AutoReverse = true };
+            var stretchY = new DoubleAnimation(1.0, 1.18, TimeSpan.FromMilliseconds(180)) { AutoReverse = true };
+            PillScaleTransform.BeginAnimation(ScaleTransform.ScaleXProperty, stretchX);
+            PillScaleTransform.BeginAnimation(ScaleTransform.ScaleYProperty, stretchY);
+        }
+
+        // Luminous flight glow flare
+        if (PillBorder.Effect is DropShadowEffect shadow)
+        {
+            var glowFlare = new DoubleAnimation(shadow.Opacity, 0.85, TimeSpan.FromMilliseconds(180)) { AutoReverse = true };
+            shadow.BeginAnimation(DropShadowEffect.OpacityProperty, glowFlare);
+        }
+
+        var animLeft = new DoubleAnimation(startLeft, targetLeft, duration) { EasingFunction = flightEase };
+        var animTop = new DoubleAnimation(startTop, targetTop, duration) { EasingFunction = flightEase };
+
+        animLeft.Completed += (s, e) =>
+        {
+            BeginAnimation(LeftProperty, null);
+            BeginAnimation(TopProperty, null);
+            Left = targetLeft;
+            Top = targetTop;
+
+            CircleRobot?.SetFlightPosture(false);
+
+            // Arrive at the top: transform into the docked Compact notch!
+            TransitionTo(IslandState.Compact);
+            _robotController.TriggerNodTestEvent();
+
+            // Schedule return to walk after a few seconds of idle in shrink mode
+            ScheduleRoamDeparture();
+        };
+
+        BeginAnimation(LeftProperty, animLeft);
+        BeginAnimation(TopProperty, animTop);
+        AppLogger.Info("NOVA flying back to top notch dock.");
+    }
+
+    private void MenuScreenRoaming_Click(object sender, RoutedEventArgs e)
+    {
+        bool newRoaming = !_robotController.Settings.ScreenRoaming;
+        if (sender is MenuItem mi)
+        {
+            newRoaming = mi.IsChecked;
+        }
+        _robotController.Settings.ScreenRoaming = newRoaming;
+        SyncScreenRoamingMenuChecks(newRoaming);
+
+        if (!newRoaming)
+        {
+            if (_isRoaming)
+            {
+                FlyToNotch();
+            }
+            _roamDepartureTimer.Stop();
+            _roamActionTimer.Stop();
+        }
+        else
+        {
+            ScheduleRoamDeparture();
+        }
+        AppLogger.Info($"Screen Roaming setting changed to: {newRoaming}.");
+    }
+
+    private void MenuWalkNow_Click(object sender, RoutedEventArgs e)
+    {
+        _robotController.Settings.ScreenRoaming = true;
+        SyncScreenRoamingMenuChecks(true);
+        StartRoaming();
+    }
+
+    private void MenuReturnToNotch_Click(object sender, RoutedEventArgs e)
+    {
+        FlyToNotch();
+    }
+
+    private void SyncScreenRoamingMenuChecks(bool enabled)
+    {
+        try
+        {
+            var menu = (ContextMenu)Resources["IslandContextMenu"];
+            foreach (var item in menu.Items)
+            {
+                if (item is MenuItem mi && mi.Header?.ToString()?.Contains("Screen Roaming") == true)
+                {
+                    mi.IsChecked = enabled;
+                }
+                else if (item is MenuItem subMenu && subMenu.HasItems)
+                {
+                    foreach (var subItem in subMenu.Items)
+                    {
+                        if (subItem is MenuItem subMi && subMi.Header?.ToString()?.Contains("Screen Roaming") == true)
+                        {
+                            subMi.IsChecked = enabled;
+                        }
+                    }
+                }
             }
         }
         catch { }
